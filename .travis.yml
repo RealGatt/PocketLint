@@ -4,11 +4,8 @@ cache:
   directories:
     - "$HOME/.cache"
 
-before_install:
-  - cp .travis.settings.xml $HOME/.m2/settings.xml
-
 script:
-  - mvn clean install -B -V
+  - mvn clean verify -B -V
 
 deploy:
   provider: script
