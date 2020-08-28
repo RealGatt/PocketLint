@@ -40,9 +40,8 @@
   </build>
   <repositories>
     <repository>
-      <id>central</id>
-      <name>bintray</name>
-      <url>https://jcenter.bintray.com</url>
+      <id>jcenter</id>
+      <url>https://jcenter.bintray.com/</url>
     </repository>
     <repository>
       <id>maven</id>

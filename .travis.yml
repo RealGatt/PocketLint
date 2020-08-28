@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 language: java
 cache:
   directories:
@@ -6,8 +6,3 @@ cache:
 
 script:
   - mvn clean verify -B -V
-
-deploy:
-  provider: script
-  script: "mvn -B -V deploy"
-  skip_cleanup: true
