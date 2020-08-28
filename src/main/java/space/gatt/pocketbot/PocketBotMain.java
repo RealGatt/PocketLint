@@ -143,16 +143,16 @@ public class PocketBotMain {
 			twitchCredentials = new OAuth2Credential("twitch", twitchConfiguration.getTwitchOAuthToken());
 
 			credentialManager.registerIdentityProvider(
-					new TwitchIdentityProvider("fz5phr8pejusq0cte60lc2mepqpdlf", "c0o0p24xsbo2u1dp2jcqgm1ghrrm0z",
-							"https://dev.gatt.space/pocketlint/"));
+					new TwitchIdentityProvider(twitchConfiguration.getTwitchClientID(), twitchConfiguration.getTwitchClientSecret(),
+							twitchConfiguration.getTwitchClientRedirect()));
 			credentialManager.save();
 
 			twitchClient = TwitchClientBuilder.builder()
 					.withCredentialManager(credentialManager)
 					.withChatAccount(twitchCredentials)
-					.withClientId("fz5phr8pejusq0cte60lc2mepqpdlf")
-					.withClientSecret("c0o0p24xsbo2u1dp2jcqgm1ghrrm0z")
-					.withRedirectUrl("https://dev.gatt.space/pocketlint/")
+					.withClientId(twitchConfiguration.getTwitchClientID())
+					.withClientSecret(twitchConfiguration.getTwitchClientSecret())
+					.withRedirectUrl(twitchConfiguration.getTwitchClientRedirect())
 					.withScheduledThreadPoolExecutor(new ScheduledThreadPoolExecutor(8))
 					.withEnableGraphQL(true)
 					.withEnableChat(true)
