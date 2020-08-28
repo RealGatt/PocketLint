@@ -228,7 +228,7 @@ public class ServerLogEntry {
 			case MESSAGE_SEND:
 				messageBuilder.setTitle("Message Sent");
 				messageBuilder.addField("Message Content", getContent(), true);
-				messageBuilder.addField("Sent by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Sent by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				break;
 			case MESSAGE_EDIT:
 				ServerLogEntry originalMessageEntry = config.getFirstEntryForRelevantID(getRelevantID(), AuditLogType.MESSAGE_SEND).orElse(null);
@@ -254,7 +254,7 @@ public class ServerLogEntry {
 			case CHANNEL_CREATE:
 				messageBuilder.setTitle("New Channel Created");
 				messageBuilder.addField("Channel", "<#" + getRelevantID() + ">", true);
-				messageBuilder.addField("Created by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Created by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				break;
 			case CHANNEL_MODIFY:
 				messageBuilder.setTitle("Channel Modified");
@@ -303,14 +303,14 @@ public class ServerLogEntry {
 				messageBuilder.setTitle("User Banned");
 				messageBuilder.addField("User Banned \uD83D\uDED1", "<@" + getRelevantID() + "> has been banned. (ID:" + getRelevantID() + ")", true);
 				messageBuilder.addBlankField(false);
-				messageBuilder.addField("Banned by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Banned by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				appendHistory = true;
 				break;
 			case UNBAN_USER:
 				messageBuilder.setTitle("User Unbanned");
 				messageBuilder.addField("User Unbanned ✅", "<@" + getRelevantID() + "> has been unbanned. (ID:" + getRelevantID() + ")", true);
 				messageBuilder.addBlankField(false);
-				messageBuilder.addField("Unbanned by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Unbanned by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				appendHistory = true;
 				break;
 			case USER_JOIN:
@@ -331,14 +331,14 @@ public class ServerLogEntry {
 				Emote emote = getGuild().getEmoteById(getRelevantID());
 				messageBuilder.addField("Emote Added", emote.getAsMention() + "  (Name: " + emote.getName() + ")", true);
 				messageBuilder.addBlankField(false);
-				messageBuilder.addField("Added by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Added by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				break;
 			case EMOTE_MODIFY:
 				messageBuilder.setTitle("Emote Modified");
 				emote = getGuild().getEmoteById(getRelevantID());
 				messageBuilder.addField("Emote Modified", emote.getAsMention() + "  (Name: " + emote.getName() + ")", true);
 				messageBuilder.addBlankField(false);
-				messageBuilder.addField("Added by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Added by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				appendHistory = true;
 				break;
 			case EMOTE_DELETE:
@@ -349,7 +349,7 @@ public class ServerLogEntry {
 								? emote.getAsMention() + "  (Name: " + emote.getName() + ")"
 								: getRelevantID() + "", true);
 				messageBuilder.addBlankField(false);
-				messageBuilder.addField("Deleted by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Deleted by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				appendHistory = true;
 				break;
 
@@ -400,7 +400,7 @@ public class ServerLogEntry {
 						setBotAction(true);
 						return null;
 					}
-					messageBuilder.addField("Deleted By", "<@" + getTriggererID() + ">", true);
+					messageBuilder.addField("Deleted By", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				} else messageBuilder.addField("Deleted By", "Unsure. Most likely the Author of the post.", true);
 				appendHistory = true;
 				break;
@@ -408,14 +408,14 @@ public class ServerLogEntry {
 			case CHANNEL_CREATE:
 				messageBuilder.setTitle("New Channel Created");
 				messageBuilder.addField("Channel", "<#" + getRelevantID() + ">", true);
-				messageBuilder.addField("Created by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Created by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				break;
 			case CHANNEL_MODIFY:
 				messageBuilder.setTitle("Channel Modified");
 				messageBuilder.addField("Channel", "<#" + getRelevantID() + ">", true);
 				messageBuilder.addBlankField(false);
 
-				messageBuilder.addField("Modified by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Modified by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				messageBuilder.addField("Changes", getContent() == null ? "-" : getContent().isEmpty() ? "-" : getContent(), true);
 
 				break;
@@ -423,7 +423,7 @@ public class ServerLogEntry {
 				messageBuilder.setTitle("Channel Deleted");
 				messageBuilder.addField("Channel", "<#" + getRelevantID() + ">", true);
 				messageBuilder.addBlankField(false);
-				messageBuilder.addField("Deleted by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Deleted by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				break;
 
 			case VOICE_CHANNEL_CREATE:
@@ -432,7 +432,7 @@ public class ServerLogEntry {
 				messageBuilder.addField("Voice Channel ID", getChannelID() + "", true);
 				messageBuilder.addBlankField(false);
 
-				messageBuilder.addField("Created by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Created by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				break;
 			case VOICE_CHANNEL_MODIFY:
 				messageBuilder.setTitle("Voice Channel Modified");
@@ -440,7 +440,7 @@ public class ServerLogEntry {
 				messageBuilder.addField("Voice Channel ID", getChannelID() + "", true);
 				messageBuilder.addBlankField(false);
 
-				messageBuilder.addField("Modified by", "<@" + getTriggererID() + ">", false);
+				messageBuilder.addField("Modified by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", false);
 				messageBuilder.addField("Changes", getContent() == null ? "-" : getContent().isEmpty() ? "-" : getContent(), true);
 
 				break;
@@ -450,8 +450,22 @@ public class ServerLogEntry {
 				messageBuilder.addField("Voice Channel ID", getChannelID() + "", true);
 				messageBuilder.addBlankField(false);
 
-				messageBuilder.addField("Deleted by", "<@" + getTriggererID() + ">", false);
+				messageBuilder.addField("Deleted by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", false);
 
+				break;
+			case GIVE_ROLE:
+				messageBuilder.setTitle("Roles Given");
+				messageBuilder.addField("User", "<#" + getRelevantID() + ">", true);
+				messageBuilder.addField("Roles taken", getContent(), true);
+				messageBuilder.addBlankField(false);
+				messageBuilder.addField("Given by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
+				break;
+			case REMOVE_ROLE:
+				messageBuilder.setTitle("Roles Remove");
+				messageBuilder.addField("User", "<#" + getRelevantID() + ">", true);
+				messageBuilder.addField("Roles taken", getContent(), true);
+				messageBuilder.addBlankField(false);
+				messageBuilder.addField("Removed by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				break;
 			default:
 				throw new IllegalStateException("Unexpected value: " + type);
