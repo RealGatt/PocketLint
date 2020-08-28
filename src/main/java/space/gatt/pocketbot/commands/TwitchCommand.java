@@ -36,7 +36,7 @@ public class TwitchCommand extends Command {
 		this.name = "twitch";
 		this.help = "Manage Twitch related configurations.";
 		this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
-		this.children = new Command[]{new TwitchAuth(), new TwitchLogger(), new TwitchWatcher()};
+		this.children = new Command[]{new TwitchAuth(), new ManageTwitch()};
 	}
 
 	@Override
@@ -78,7 +78,7 @@ public class TwitchCommand extends Command {
 					EmbedBuilder messageBuilder = MessageUtil.getDefaultBuilder();
 					GuildConfiguration config = GuildConfiguration.getGuildConfiguration(commandEvent.getGuild());
 					if (! config.getTwitchAuditLogs().contains(commandEvent.getArgs().toLowerCase())) {
-						commandEvent.reply(MessageUtil.getErrorBuilder("`" + commandEvent.getArgs().toLowerCase() + "` hasn't been added as a Channel for me to watch/log.\nUse `_twitch logger add " + commandEvent.getArgs().toLowerCase() + "`").build());
+						commandEvent.reply(MessageUtil.getErrorBuilder("`" + commandEvent.getArgs().toLowerCase() + "` hasn't been added as a Channel for me to watch/log.\nUse `_twitch manage add " + commandEvent.getArgs().toLowerCase() + "`").build());
 						return;
 					}
 					messageBuilder.setDescription("[**Click here**](https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=fz5phr8pejusq0cte60lc2mepqpdlf&redirect_uri=https://dev.gatt.space/pocketlint/&scope=channel_check_subscription+channel_subscriptions+channel:moderate+openid+user_read+chat:read+bits:read+analytics:read:extensions+analytics:read:games+channel:read:hype_train+channel:read:subscriptions+user:edit:follows+user_follows_edit) " +
@@ -167,145 +167,23 @@ public class TwitchCommand extends Command {
 		}
 	}
 
-	public class TwitchWatcher extends Command {
-		public TwitchWatcher() {
-			this.name = "watcher";
-			this.help = "Add, remove and list Channels I'm watching for Stream Starts.";
+	public class GoLiveNotifications extends Command{
+		public GoLiveNotifications() {
+			this.name = "notifications";
+			this.help = "Setup Go Live Notifications for channels";
 			this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
-			this.children = new Command[]{new AddChannel(), new RemoveChannel(), new ListChannel()};
 		}
 
 		@Override
 		protected void execute(CommandEvent commandEvent) {
 			commandEvent.reply(MessageUtil.generateHelpForCommand(this, "twitch").build());
 		}
-
-		public class ListChannel extends Command {
-			public ListChannel() {
-				this.name = "list";
-				this.help = "Lists channels currently watching, and connection to Twitch";
-				this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
-			}
-
-			@Override
-			protected void execute(CommandEvent commandEvent) {
-				GuildConfiguration config = GuildConfiguration.getGuildConfiguration(commandEvent.getGuild());
-
-				Paginator.Builder paginatorBuilder = new Paginator.Builder().showPageNumbers(true).setUsers().setUsers(commandEvent.getAuthor()).allowTextInput(false)
-						.setText("**Current Twitch Connection Status:** " + PocketBotMain.getInstance().getTwitchClient().getChat().getConnectionState().name())
-						.waitOnSinglePage(true).setItemsPerPage(3).setColor(MessageUtil.getColor())
-
-						.setTimeout(3, TimeUnit.MINUTES).useNumberedItems(true).setColumns(3).setFinalAction(msg -> {
-							msg.clearReactions().queue();
-							msg.editMessage(msg.getContentRaw() + "\n**Timed Out**").queue();
-						});
-
-				if (PocketBotMain.getInstance().getTwitchClient().getChat().getConnectionState() != TMIConnectionState.CONNECTED)
-					PocketBotMain.getInstance().getTwitchClient().getChat().reconnect();
-
-				if (config.getTwitchAuditLogs().size() > 0) {
-					for (String twitchChannel : config.getTwitchAuditLogs()) {
-
-						boolean joined = PocketBotMain.getInstance().getTwitchClient().getChat().isChannelJoined(twitchChannel);
-						TwitchChannelWatcher watcher = TwitchChannelWatcher.getWatcher(twitchChannel, commandEvent.getGuild());
-
-						paginatorBuilder.addItems("**__[" + twitchChannel.toLowerCase() + "](https://twitch.tv/" + twitchChannel.toLowerCase() + ")__**\n" +
-								(joined ? ":white_check_mark: Currently in Chat" : ":negative_squared_cross_mark: Currently not in chat. Attempting to rejoin.") +
-								"\n**Watching Moderation Events:** " + watcher.isWatchingLogs() +
-								"\n**Watching Stream Start:** " + watcher.isWatchingStreamStart() +
-								(commandEvent.getArgs().equalsIgnoreCase("debug") ? "\n**JSON:** \n```json\n" + PocketBotMain.getInstance().getGsonInstance().toJson(watcher) + "\n```" : "")
-						);
-						if (! joined)
-							PocketBotMain.getInstance().getTwitchClient().getChat().joinChannel(twitchChannel.toLowerCase());
-					}
-
-					paginatorBuilder.setEventWaiter(PocketBotMain.getInstance().getWaiter()).build()
-							.display(commandEvent.getChannel());
-
-				} else {
-					EmbedBuilder embedBuilder = MessageUtil.getDefaultBuilder();
-					embedBuilder.setTitle("Watching Channels");
-					embedBuilder.setDescription("**Current Twitch Connection Status:** " + PocketBotMain.getInstance().getTwitchClient().getChat().getConnectionState().name());
-					embedBuilder.setDescription("You're not watching any channels.");
-					commandEvent.reply(embedBuilder.build());
-				}
-			}
-		}
-
-		public class RemoveChannel extends Command {
-			public RemoveChannel() {
-				this.name = "remove";
-				this.help = "Removes the given channels from the watchers list. Separate channels with a Space";
-				this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
-			}
-
-			@Override
-			protected void execute(CommandEvent commandEvent) {
-				GuildConfiguration config = GuildConfiguration.getGuildConfiguration(commandEvent.getGuild());
-				List<String> channelsAdded = new ArrayList<>();
-
-				for (String chnl : commandEvent.getArgs().split(" ")) {
-					if (! channelsAdded.contains(chnl)) {
-						channelsAdded.add(chnl);
-						TwitchChannelWatcher.getWatcher(chnl, commandEvent.getGuild()).setWatchingLogs(false);
-						TwitchChannelWatcher.getWatcher(chnl, commandEvent.getGuild()).save();
-					}
-				}
-
-				for (String channel : channelsAdded)
-					config.getTwitchAuditLogs().remove(channel);
-
-
-				EmbedBuilder embedBuilder = MessageUtil.getDefaultBuilder();
-				embedBuilder.setTitle("Watching Channels");
-				embedBuilder.addField("Stopped Watching", String.join(", ", channelsAdded), true);
-				embedBuilder.addField("Channels Watching", String.join(", ", config.getTwitchAuditLogs()), true);
-
-				commandEvent.reply(embedBuilder.build());
-			}
-		}
-
-		public class AddChannel extends Command {
-			public AddChannel() {
-				this.name = "add";
-				this.help = "Add the given channels to the watchers list. Separate channels with a Space.";
-				this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
-			}
-
-			@Override
-			protected void execute(CommandEvent commandEvent) {
-				GuildConfiguration config = GuildConfiguration.getGuildConfiguration(commandEvent.getGuild());
-				List<String> channelsAdded = new ArrayList<>();
-
-				for (String chnl : commandEvent.getArgs().split(" ")) {
-					if (! channelsAdded.contains(chnl)) {
-						if (chnl.length() >= 4 && chnl.length() <= 25) {
-							channelsAdded.add(chnl);
-							TwitchChannelWatcher.getWatcher(chnl, commandEvent.getGuild()).setWatchingLogs(true);
-							TwitchChannelWatcher.getWatcher(chnl, commandEvent.getGuild()).save();
-						}
-					}
-				}
-
-				for (String channel : channelsAdded) {
-					if (! config.getTwitchAuditLogs().contains(channel))
-						config.getTwitchAuditLogs().add(channel);
-				}
-
-				EmbedBuilder embedBuilder = MessageUtil.getDefaultBuilder();
-				embedBuilder.setTitle("Watching Channels");
-				embedBuilder.addField("Now Watching", String.join(", ", channelsAdded), true);
-				embedBuilder.addField("Channels Watching", String.join(", ", config.getTwitchAuditLogs()), true);
-
-				commandEvent.reply(embedBuilder.build());
-			}
-		}
 	}
 
-	public class TwitchLogger extends Command {
-		public TwitchLogger() {
-			this.name = "logger";
-			this.help = "Add, remove and list Channels I'm watching chat.";
+	public class ManageTwitch extends Command {
+		public ManageTwitch() {
+			this.name = "manage";
+			this.help = "Add, remove and list Channels I watch.";
 			this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
 			this.children = new Command[]{new AddChannel(), new RemoveChannel(), new ListChannel()};
 		}

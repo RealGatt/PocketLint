@@ -39,7 +39,7 @@ public class MessageUtil {
 	public static EmbedBuilder generateHelpForCommand(Command cmd, String prefix) {
 		EmbedBuilder helpBuilder = getDefaultBuilder();
 		helpBuilder.setTitle(StringUtils.capitalize(cmd.getName()));
-		helpBuilder.addField(PocketBotMain.getInstance().getCommandPrefix() + prefix + cmd.getName(), cmd.getHelp(), false);
+		helpBuilder.addField(PocketBotMain.getInstance().getCommandPrefix() + prefix + " " + cmd.getName(), cmd.getHelp(), false);
 		if (cmd.getChildren().length > 0) {
 			for (Command childCommand : cmd.getChildren()) {
 				helpBuilder.addField(PocketBotMain.getInstance().getCommandPrefix() + prefix + cmd.getName() + " " + childCommand.getName(), childCommand.getHelp(), true);
