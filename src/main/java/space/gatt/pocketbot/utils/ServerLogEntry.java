@@ -15,9 +15,9 @@ import java.util.TimeZone;
 public class ServerLogEntry {
 
 	private AuditLogType type;
-	private String content;
+	private String content, reason = null;
 	private long relevantID, channelID, guildID, triggererID;
-	private long logChannelMessageID = - 1, logChannelID = - 1;
+	private long logChannelMessageID = -1, logChannelID = -1;
 	private long actionID;
 	private String imageURL = null;
 
@@ -51,6 +51,18 @@ public class ServerLogEntry {
 		return guild;
 	}
 
+	public String getReason() {
+		if (reason != null && reason.equalsIgnoreCase("xx no reason xx")) return "";
+		if (getTriggererID() == -1) return "";
+		if (reason == null) return "No reason given. " + getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + getActionID() + " The Reason` to update the reason.";
+		if (reason.length() > 1024) return reason.substring(0, 1024);
+		return reason;
+	}
+
+	public void setReason(String reason) {
+		this.reason = reason;
+	}
+
 	public String getImageURL() {
 		return imageURL;
 	}
@@ -67,9 +79,7 @@ public class ServerLogEntry {
 		this.botAction = botAction;
 	}
 
-	public AuditLogType getType() {
-		return type;
-	}
+	public AuditLogType getType() { return type; }
 
 	public long getChannelID() {
 		return channelID;
@@ -95,6 +105,13 @@ public class ServerLogEntry {
 
 	public void setRelevantID(long relevantID) {
 		this.relevantID = relevantID;
+	}
+
+	private transient User triggerUser = null;
+
+	public User getTriggererAsUser(){
+		if (triggerUser == null) triggerUser = PocketBotMain.getInstance().getJDAInstance().getUserById(getTriggererID());
+		return triggerUser;
 	}
 
 	public long getTriggererID() {
@@ -287,7 +304,6 @@ public class ServerLogEntry {
 				messageBuilder.addField("User Banned \uD83D\uDED1", "<@" + getRelevantID() + "> has been banned. (ID:" + getRelevantID() + ")", true);
 				messageBuilder.addBlankField(false);
 				messageBuilder.addField("Banned by", "<@" + getTriggererID() + ">", true);
-				messageBuilder.addField("Reason", getContent(), true);
 				appendHistory = true;
 				break;
 			case UNBAN_USER:
@@ -340,7 +356,7 @@ public class ServerLogEntry {
 			case MESSAGE_SEND:
 				messageBuilder.setTitle("Message Sent");
 				messageBuilder.addField("Message Content", getContent(), true);
-				messageBuilder.addField("Sent by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Sent by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				messageBuilder.addBlankField(false);
 				messageBuilder.addField("Message ID", getRelevantID() + "", true);
 				messageBuilder.addField("Channel", "<#" + getChannelID() + ">", true);
@@ -348,13 +364,14 @@ public class ServerLogEntry {
 				break;
 			case MESSAGE_EDIT:
 				ServerLogEntry originalMessageEntry = config.getFirstEntryForRelevantID(getRelevantID(), AuditLogType.MESSAGE_SEND).orElse(null);
+				User messageOwner = originalMessageEntry.getTriggererAsUser();
 				messageBuilder.setTitle("Message Edited");
 				if (originalMessageEntry != null)
 					messageBuilder.addField("Original Message", originalMessageEntry.getContent(), true);
 				else messageBuilder.addField("Original Message", "Unable to find the original message.", true);
 				messageBuilder.addField("New Message Content", getContent(), true);
 				messageBuilder.addBlankField(false);
-				messageBuilder.addField("Sent by", "<@" + getTriggererID() + ">", true);
+				messageBuilder.addField("Sent by", messageOwner.getAsMention() + "  (" + messageOwner.getName() + "#" + messageOwner.getDiscriminator() + ")", true);
 				messageBuilder.addField("Message ID", getRelevantID() + "", true);
 				messageBuilder.addField("Channel", "<#" + getChannelID() + ">", true);
 				messageBuilder.addField("Goto Message", "[Click here](https://discordapp.com/channels/" + guildID + "/" + getChannelID() + "/" + getRelevantID() + ")", false);
@@ -362,14 +379,15 @@ public class ServerLogEntry {
 				break;
 			case MESSAGE_DELETE:
 				originalMessageEntry = config.getFirstEntryForRelevantID(getRelevantID(), AuditLogType.MESSAGE_SEND).orElse(null);
+				messageOwner = originalMessageEntry.getTriggererAsUser();
 				messageBuilder.setTitle("Message Deleted");
 
 				if (originalMessageEntry != null)
 					messageBuilder.addField("Message Content", originalMessageEntry.getContent(), true);
 				else
 					messageBuilder.addField("Message Content", "Unknown. I don't have any memory of that message.", true);
-
-				messageBuilder.addField("Message ID", getRelevantID() + "", true);
+				messageBuilder.addField("Message Sender", messageOwner.getAsMention() + "  (" + messageOwner.getName() + "#" + messageOwner.getDiscriminator() + ")", true);
+				messageBuilder.addField("Message ID", getRelevantID() + "", false);
 				messageBuilder.addField("Channel", "<#" + getChannelID() + ">", true);
 				messageBuilder.addBlankField(false);
 				if (getTriggererID() == - 1) setTriggererID(originalMessageEntry != null ? originalMessageEntry.getTriggererID() : - 1);
@@ -384,7 +402,6 @@ public class ServerLogEntry {
 					}
 					messageBuilder.addField("Deleted By", "<@" + getTriggererID() + ">", true);
 				} else messageBuilder.addField("Deleted By", "Unsure. Most likely the Author of the post.", true);
-				messageBuilder.addField("Reason", getContent() == null ? "-" : getContent().isEmpty() ? "-" : getContent(), true);
 				appendHistory = true;
 				break;
 
@@ -407,7 +424,6 @@ public class ServerLogEntry {
 				messageBuilder.addField("Channel", "<#" + getRelevantID() + ">", true);
 				messageBuilder.addBlankField(false);
 				messageBuilder.addField("Deleted by", "<@" + getTriggererID() + ">", true);
-				messageBuilder.addField("Reason", getContent() == null ? "-" : getContent().isEmpty() ? "-" : getContent(), true);
 				break;
 
 			case VOICE_CHANNEL_CREATE:
@@ -435,15 +451,19 @@ public class ServerLogEntry {
 				messageBuilder.addBlankField(false);
 
 				messageBuilder.addField("Deleted by", "<@" + getTriggererID() + ">", false);
-				messageBuilder.addField("Reason", getContent() == null ? "-" : getContent().isEmpty() ? "-" : getContent(), true);
 
 				break;
+			default:
+				throw new IllegalStateException("Unexpected value: " + type);
 		}
 
 		messageBuilder.addBlankField(false);
 
 		if (initialEntry != null && logChannel != null && appendHistory)
 			messageBuilder = appendPreviousEntries(messageBuilder);
+
+		messageBuilder.addField("Reason", getReason(), true);
+
 		messageBuilder.setTimestamp(new Date(time).toInstant());
 		messageBuilder.setFooter("PocketLint | Log Action #" + getActionID(), PocketBotMain.getInstance().getJDAInstance().getSelfUser().getAvatarUrl());
 
