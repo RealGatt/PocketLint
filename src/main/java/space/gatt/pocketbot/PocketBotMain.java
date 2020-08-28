@@ -57,6 +57,7 @@ public class PocketBotMain {
 	private CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
 	private EventWaiter waiter = new EventWaiter();
 	private String twitchBotID = null;
+
 	public PocketBotMain(String[] startupArgs) {
 		this.startupArgs = startupArgs;
 	}

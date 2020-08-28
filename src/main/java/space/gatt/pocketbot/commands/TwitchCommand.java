@@ -82,35 +82,35 @@ public class TwitchCommand extends Command {
 						return;
 					}
 					messageBuilder.setDescription("[**Click here**](https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=fz5phr8pejusq0cte60lc2mepqpdlf&redirect_uri=https://dev.gatt.space/pocketlint/&scope=channel_check_subscription+channel_subscriptions+channel:moderate+openid+user_read+chat:read+bits:read+analytics:read:extensions+analytics:read:games+channel:read:hype_train+channel:read:subscriptions+user:edit:follows+user_follows_edit) " +
-						"to generate an oAuth Token." +
-						"\nReply in this channel with your token." +
-						"\nThe token must be generated with the **" + commandEvent.getArgs() + "** Twitch Account." +
-						"\nThe bot will attempt to make **" + commandEvent.getArgs() + "** follow `backpocketbot` on Twitch to validate the token, then if successful, will immediately unfollow.");
+							"to generate an oAuth Token." +
+							"\nReply in this channel with your token." +
+							"\nThe token must be generated with the **" + commandEvent.getArgs() + "** Twitch Account." +
+							"\nThe bot will attempt to make **" + commandEvent.getArgs() + "** follow `backpocketbot` on Twitch to validate the token, then if successful, will immediately unfollow.");
 					chnl.sendMessage(new MessageBuilder()
-						.setEmbed(messageBuilder.build())
-						.setContent(commandEvent.getAuthor().getAsMention())
-						.build())
-						.queue(msg ->
-							PocketBotMain.getInstance().getWaiter().waitForEvent(GuildMessageReceivedEvent.class,
-								e -> (e.getMessage().getAuthor() == commandEvent.getAuthor()),
-								e -> {
-									String token = e.getMessage().getContentRaw();
-									AuditLogWatcher.getIgnoredIDs().add(e.getMessageIdLong());
-									e.getMessage().delete().queue();
-									TwitchChannelWatcher watcher = TwitchChannelWatcher.getWatcher(channel, commandEvent.getGuild());
-									try {
-										watcher.setOAuthToken(token);
-										watcher.setupTwitch();
-										watcher.save();
-										messageBuilder.setDescription("Updated the Token for `" + channel.toLowerCase() + "`");
-									} catch (Exception exp) {
-										messageBuilder.setDescription("Something went wrong! That might have been an invalid token.");
-									}
-									msg.editMessage(messageBuilder.build()).queue();
-								}, 2, TimeUnit.MINUTES, () -> {
-									msg.editMessage(":octagonal_sign: **Timed Out!** :octagonal_sign:").queue();
-								})
-						);
+							.setEmbed(messageBuilder.build())
+							.setContent(commandEvent.getAuthor().getAsMention())
+							.build())
+							.queue(msg ->
+									PocketBotMain.getInstance().getWaiter().waitForEvent(GuildMessageReceivedEvent.class,
+											e -> (e.getMessage().getAuthor() == commandEvent.getAuthor()),
+											e -> {
+												String token = e.getMessage().getContentRaw();
+												AuditLogWatcher.getIgnoredIDs().add(e.getMessageIdLong());
+												e.getMessage().delete().queue();
+												TwitchChannelWatcher watcher = TwitchChannelWatcher.getWatcher(channel, commandEvent.getGuild());
+												try {
+													watcher.setOAuthToken(token);
+													watcher.setupTwitch();
+													watcher.save();
+													messageBuilder.setDescription("Updated the Token for `" + channel.toLowerCase() + "`");
+												} catch (Exception exp) {
+													messageBuilder.setDescription("Something went wrong! That might have been an invalid token.");
+												}
+												msg.editMessage(messageBuilder.build()).queue();
+											}, 2, TimeUnit.MINUTES, () -> {
+												msg.editMessage(":octagonal_sign: **Timed Out!** :octagonal_sign:").queue();
+											})
+							);
 				}
 			}
 		}
@@ -167,7 +167,7 @@ public class TwitchCommand extends Command {
 		}
 	}
 
-	public class GoLiveNotifications extends Command{
+	public class GoLiveNotifications extends Command {
 		public GoLiveNotifications() {
 			this.name = "notifications";
 			this.help = "Setup Go Live Notifications for channels";

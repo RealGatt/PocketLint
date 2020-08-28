@@ -17,7 +17,7 @@ public class ServerLogEntry {
 	private AuditLogType type;
 	private String content, reason = null;
 	private long relevantID, channelID, guildID, triggererID;
-	private long logChannelMessageID = -1, logChannelID = -1;
+	private long logChannelMessageID = - 1, logChannelID = - 1;
 	private long actionID;
 	private String imageURL = null;
 
@@ -27,6 +27,7 @@ public class ServerLogEntry {
 
 	private transient Guild guild = null;
 	private transient Message message = null;
+	private transient User triggerUser = null;
 
 	public ServerLogEntry() {
 	}
@@ -53,8 +54,9 @@ public class ServerLogEntry {
 
 	public String getReason() {
 		if (reason != null && reason.equalsIgnoreCase("xx no reason xx")) return "";
-		if (getTriggererID() == -1) return "";
-		if (reason == null) return "No reason given. " + getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + getActionID() + " The Reason` to update the reason.";
+		if (getTriggererID() == - 1) return "";
+		if (reason == null)
+			return "No reason given. " + getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + getActionID() + " The Reason` to update the reason.";
 		if (reason.length() > 1024) return reason.substring(0, 1024);
 		return reason;
 	}
@@ -79,7 +81,9 @@ public class ServerLogEntry {
 		this.botAction = botAction;
 	}
 
-	public AuditLogType getType() { return type; }
+	public AuditLogType getType() {
+		return type;
+	}
 
 	public long getChannelID() {
 		return channelID;
@@ -107,10 +111,9 @@ public class ServerLogEntry {
 		this.relevantID = relevantID;
 	}
 
-	private transient User triggerUser = null;
-
-	public User getTriggererAsUser(){
-		if (triggerUser == null) triggerUser = PocketBotMain.getInstance().getJDAInstance().getUserById(getTriggererID());
+	public User getTriggererAsUser() {
+		if (triggerUser == null)
+			triggerUser = PocketBotMain.getInstance().getJDAInstance().getUserById(getTriggererID());
 		return triggerUser;
 	}
 
@@ -390,7 +393,8 @@ public class ServerLogEntry {
 				messageBuilder.addField("Message ID", getRelevantID() + "", false);
 				messageBuilder.addField("Channel", "<#" + getChannelID() + ">", true);
 				messageBuilder.addBlankField(false);
-				if (getTriggererID() == - 1) setTriggererID(originalMessageEntry != null ? originalMessageEntry.getTriggererID() : - 1);
+				if (getTriggererID() == - 1)
+					setTriggererID(originalMessageEntry != null ? originalMessageEntry.getTriggererID() : - 1);
 				if (getTriggererID() > - 1) {
 					System.out.println(getTriggererID());
 					User triggerUser = PocketBotMain.getInstance()

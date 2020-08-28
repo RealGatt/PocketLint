@@ -6,7 +6,6 @@ import com.github.twitch4j.pubsub.PubSubSubscription;
 import com.netflix.hystrix.HystrixCommand;
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Id;
-import dev.morphia.annotations.Transient;
 import net.dv8tion.jda.api.entities.Guild;
 import space.gatt.pocketbot.PocketBotMain;
 import space.gatt.pocketbot.configs.GuildConfiguration;
@@ -86,12 +85,14 @@ public class TwitchChannelWatcher {
 			return;
 		}
 
+		if (PocketBotMain.getInstance().getJDAInstance().getGuildById(getGuildID()) == null) return;
+
 		watchers.put(channelName.toLowerCase() + "-" + guildID, this);
 		System.out.println("Storing " + channelName.toLowerCase() + "-" + guildID + " to HashMap");
 
 		System.out.println("Loaded Watcher for Channel " + channelName.toLowerCase());
 		PocketBotMain.getInstance().getTwitchClient().getChat().joinChannel(channelName);
-		System.out.println("LOADED: \n" + PocketBotMain.getInstance().getGsonInstance().toJson(this));
+		//System.out.println("LOADED: \n" + PocketBotMain.getInstance().getGsonInstance().toJson(this));
 		setupTwitch();
 	}
 
@@ -105,7 +106,7 @@ public class TwitchChannelWatcher {
 				save();
 			}
 
-			System.out.println("Setting up PubSub for (" + twitchChannelID + ") " + channelName + "-" + guildID + " using token " + oauthToken);
+			System.out.println("Setting up PubSub for (" + twitchChannelID + ") " + channelName + "-" + guildID);// + " using token " + oauthToken);
 			try {
 				OAuth2Credential oAuth2Credential = new OAuth2Credential("twitch", oauthToken);
 

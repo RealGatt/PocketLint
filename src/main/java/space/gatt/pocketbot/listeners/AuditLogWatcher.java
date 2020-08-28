@@ -88,8 +88,8 @@ public class AuditLogWatcher extends ListenerAdapter {
 						System.out.println(entry.getTargetType().name());
 						if (ignoredIDs.contains(entry.getIdLong())) continue;
 						if (entry.getType() == ActionType.MESSAGE_DELETE && entry.getTargetType() == TargetType.MEMBER
-							&& (OffsetDateTime.now().getNano() - entry.getTimeCreated().getNano()) <= 2000
-							&& originalMessageEntry.getTriggererID() == entry.getTargetIdLong()) {
+								&& (OffsetDateTime.now().getNano() - entry.getTimeCreated().getNano()) <= 2000
+								&& originalMessageEntry.getTriggererID() == entry.getTargetIdLong()) {
 							ignoredIDs.add(entry.getIdLong());
 							logEntry.setTriggererID(entry.getUser().getIdLong());
 							logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
@@ -101,7 +101,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 					}
 				}
 			}
-			logEntry.setTriggererID(-1);
+			logEntry.setTriggererID(- 1);
 			logEntry.setContent("User deleted their own message");
 			configuration.parseLogEntry(logEntry);
 		});

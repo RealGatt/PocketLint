@@ -13,6 +13,7 @@ import space.gatt.pocketbot.utils.MessageUtil;
 import space.gatt.pocketbot.utils.ServerLogEntry;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @CommandInfo(
 		name = {"actionlog", "auditlog"},
@@ -47,8 +48,9 @@ public class ViewActionLogCommands extends Command {
 		@Override
 		protected void execute(CommandEvent commandEvent) {
 			String[] args = commandEvent.getArgs().split("\\s+");
-			if (args.length < 2) commandEvent.reply(MessageUtil.getErrorBuilder("**Usage:** `_actionlog reason ActionID The Reason`").build());
-			else{
+			if (args.length < 2)
+				commandEvent.reply(MessageUtil.getErrorBuilder("**Usage:** `_actionlog reason ActionID The Reason`").build());
+			else {
 				try {
 					int actionId = Integer.parseInt(args[0]);
 					args[0] = "";
@@ -59,23 +61,36 @@ public class ViewActionLogCommands extends Command {
 					if (entry == null)
 						commandEvent.reply(MessageUtil.getErrorBuilder("Couldn't find an Action for the ID " + actionId).build());
 					else {
-						if (newReason.length() == 0) commandEvent.reply(MessageUtil.getErrorBuilder("No reason was given.").build());
-						else{
-							if (entry.getTriggererID() == commandEvent.getAuthor().getIdLong()){
+						if (newReason.length() == 0)
+							commandEvent.reply(MessageUtil.getErrorBuilder("No reason was given.").build());
+						else {
+							if (entry.getTriggererID() == commandEvent.getAuthor().getIdLong()) {
 								entry.setReason(newReason + "\n - " +
 										commandEvent.getAuthor().getAsMention() + "  (" + commandEvent.getAuthor().getName() + "#" + commandEvent.getAuthor().getDiscriminator() + ")");
 								GuildConfiguration configuration = GuildConfiguration.getGuildConfiguration(entry.getGuildID());
 								configuration.save();
 								EmbedBuilder msgB = entry.build();
-								if (msgB != null){
+								if (msgB != null) {
 									Message msg = entry.getMessage();
-									if (msg != null){
+									if (msg != null) {
 										msg.editMessage(msgB.build()).queue();
-										commandEvent.reply(MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason + "`\nClick [here](" + msg.getJumpUrl() +") to go to the message").build());
-									}else{
-										commandEvent.reply(MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason + "`").build());
+										commandEvent.getTextChannel().sendMessage(
+												MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason
+														+ "`\nClick [here](" + msg.getJumpUrl() + ") to go to the message").build())
+												.queue(newMsg -> {
+													newMsg.delete().queueAfter(5, TimeUnit.SECONDS);
+													commandEvent.getMessage().delete().queueAfter(5, TimeUnit.SECONDS);
+												});
+									} else {
+										commandEvent.getTextChannel().sendMessage(
+												MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason + "`").build())
+												.queue(newMsg -> {
+													newMsg.delete().queueAfter(5, TimeUnit.SECONDS);
+													commandEvent.getMessage().delete().queueAfter(5, TimeUnit.SECONDS);
+												});
+										;
 									}
-								}else{
+								} else {
 									commandEvent.reply(MessageUtil.getErrorBuilder("Something went wrong while building the new message. The reason has been updated still.").build());
 								}
 							}
