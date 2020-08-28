@@ -155,7 +155,7 @@ public class ChatListener {
 				reason = e.getData().getArgs().size() > 1 ? e.getData().getArgs().get(1) : "";
 				handlePubSubMessage(e.getChannelId(), e.getData().getArgs().get(0),
 						! e.getData().getFromAutomod() ? e.getData().getCreatedBy() : "AUTOMOD",
-						"**deleted message** ||" + (! reason.isEmpty() ? reason : "Unknown") + "|| :scissors:", true);
+						"||" + (! reason.isEmpty() ? reason : "Unknown") + "|| :scissors: **deleted message**", true);
 				return;
 
 

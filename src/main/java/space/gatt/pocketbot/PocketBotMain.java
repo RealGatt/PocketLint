@@ -43,7 +43,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 public class PocketBotMain {
 	final static String dir = System.getProperty("user.dir") + "/data";
 	private static PocketBotMain instance = null;
-	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 	private String[] startupArgs;
 	private JDA jdaInstance;
 	private CommandClient commandClient;
@@ -102,9 +102,10 @@ public class PocketBotMain {
 	public void start() {
 
 		System.out.println("Loading Bot with the following Arguments: " + String.join(", ", startupArgs));
-		botConfiguration = Configuration.load(BotConfiguration.class, new File(dir));
-		databaseConfiguration = Configuration.load(MongoConfiguration.class, new File(dir));
-		twitchConfiguration = Configuration.load(TwitchConfiguration.class, new File(dir));
+		File dataFolder = new File(dir);
+		botConfiguration = Configuration.load(BotConfiguration.class, dataFolder);
+		databaseConfiguration = Configuration.load(MongoConfiguration.class, dataFolder);
+		twitchConfiguration = Configuration.load(TwitchConfiguration.class, dataFolder);
 
 		commandClient = new CommandClientBuilder()
 				.setPrefix(botConfiguration.getBotPrefix())

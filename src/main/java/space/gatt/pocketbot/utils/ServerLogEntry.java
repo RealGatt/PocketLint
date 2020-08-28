@@ -372,8 +372,7 @@ public class ServerLogEntry {
 				messageBuilder.addField("Message ID", getRelevantID() + "", true);
 				messageBuilder.addField("Channel", "<#" + getChannelID() + ">", true);
 				messageBuilder.addBlankField(false);
-				if (getTriggererID() == - 1)
-					setTriggererID(originalMessageEntry != null ? originalMessageEntry.getTriggererID() : - 1);
+				if (getTriggererID() == - 1) setTriggererID(originalMessageEntry != null ? originalMessageEntry.getTriggererID() : - 1);
 				if (getTriggererID() > - 1) {
 					System.out.println(getTriggererID());
 					User triggerUser = PocketBotMain.getInstance()

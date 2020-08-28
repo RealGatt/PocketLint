@@ -34,8 +34,7 @@ public class TwitchChannelWatcher {
 	private String twitchChannelID = null;
 	private String oauthToken = null;
 	private transient PubSubSubscription moderationSubscription = null;
-	@Transient
-	private UUID instanceUUID = UUID.randomUUID();
+
 	public TwitchChannelWatcher() {
 		System.out.println(PocketBotMain.getInstance().getGsonInstance().toJson(this));
 		PocketBotMain.getInstance().getScheduler().schedule(this::load, 5, TimeUnit.MILLISECONDS);
@@ -120,7 +119,7 @@ public class TwitchChannelWatcher {
 				flw.execute();
 
 
-				PocketBotMain.getInstance().getTwitchClient().getClientHelper().enableStreamEventListener(channelName.toLowerCase());
+				PocketBotMain.getInstance().getTwitchClient().getClientHelper().enableStreamEventListener(twitchChannelID, channelName.toLowerCase());
 				moderationSubscription = PocketBotMain.getInstance().getTwitchClient().getPubSub()
 						.listenForModerationEvents(oAuth2Credential, twitchChannelID);
 			} catch (Throwable e) {

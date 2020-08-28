@@ -3,6 +3,7 @@ package space.gatt.pocketbot.listeners;
 import net.dv8tion.jda.api.audit.ActionType;
 import net.dv8tion.jda.api.audit.AuditLogEntry;
 import net.dv8tion.jda.api.audit.AuditLogKey;
+import net.dv8tion.jda.api.audit.TargetType;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
 import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
@@ -76,19 +77,22 @@ public class AuditLogWatcher extends ListenerAdapter {
 		ServerLogEntry logEntry = new ServerLogEntry(AuditLogType.MESSAGE_DELETE, event.getGuild());
 		logEntry.setRelevantID(event.getMessageIdLong());
 		logEntry.setChannelID(event.getChannel().getIdLong());
-		event.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queueAfter(5, TimeUnit.SECONDS, (s) -> {
-			if (s.size() > 0) {
-				for (AuditLogEntry entry : s) {
-					if (entry.getTargetIdLong() == event.getMessageIdLong()) {
-						logEntry.setTriggererID(entry.getUser().getIdLong());
-						logEntry.setContent(entry.getReason() != null ? entry.getReason() : "No reason given");
-						logEntry.setBotAction(entry.getUser().isBot());
-						configuration.parseLogEntry(logEntry);
-						return;
+		ServerLogEntry originalMessageEntry = configuration.getLastEntryForRelevantID(event.getMessageIdLong(), AuditLogType.MESSAGE_SEND).orElse(null);
+		event.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queueAfter(200, TimeUnit.MILLISECONDS, (s) -> {
+			if (originalMessageEntry != null) {
+				if (s.size() > 0) {
+					for (AuditLogEntry entry : s) {
+						if (entry.getType() == ActionType.MESSAGE_DELETE && entry.getTargetType() == TargetType.MEMBER && originalMessageEntry.getTriggererID() == entry.getTargetIdLong()) {
+							logEntry.setTriggererID(entry.getUser().getIdLong());
+							logEntry.setContent(entry.getReason() != null ? entry.getReason() : "No reason given");
+							logEntry.setBotAction(entry.getUser().isBot());
+							configuration.parseLogEntry(logEntry);
+							return;
+						}
 					}
 				}
 			}
-			logEntry.setTriggererID(- 1);
+			logEntry.setTriggererID(-1);
 			logEntry.setContent("User deleted their own message");
 			configuration.parseLogEntry(logEntry);
 		});
