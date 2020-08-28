@@ -54,9 +54,9 @@ public class ServerLogEntry {
 
 	public String getReason() {
 		if (reason != null && reason.equalsIgnoreCase("xx no reason xx")) return "";
-		if (getTriggererID() == - 1) return "";
 		if (reason == null)
-			return "No reason given. " + getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + getActionID() + " The Reason` to update the reason.";
+			if (getTriggererID() == -1) return "No reason given. Please use `_actionlog reason " + getActionID() + " The Reason` to update the reason.";
+			else return "No reason given. " + getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + getActionID() + " The Reason` to update the reason.";
 		if (reason.length() > 1024) return reason.substring(0, 1024);
 		return reason;
 	}
@@ -112,8 +112,7 @@ public class ServerLogEntry {
 	}
 
 	public User getTriggererAsUser() {
-		if (triggerUser == null)
-			triggerUser = PocketBotMain.getInstance().getJDAInstance().getUserById(getTriggererID());
+		if (triggerUser == null) triggerUser = PocketBotMain.getInstance().getJDAInstance().getUserById(getTriggererID());
 		return triggerUser;
 	}
 
@@ -385,15 +384,13 @@ public class ServerLogEntry {
 				messageOwner = originalMessageEntry.getTriggererAsUser();
 				messageBuilder.setTitle("Message Deleted");
 
-				if (originalMessageEntry != null)
-					messageBuilder.addField("Message Content", originalMessageEntry.getContent(), true);
-				else
-					messageBuilder.addField("Message Content", "Unknown. I don't have any memory of that message.", true);
+				if (originalMessageEntry != null) messageBuilder.addField("Message Content", originalMessageEntry.getContent(), true);
+				else messageBuilder.addField("Message Content", "Unknown. I don't have any memory of that message.", true);
 				messageBuilder.addField("Message Sender", messageOwner.getAsMention() + "  (" + messageOwner.getName() + "#" + messageOwner.getDiscriminator() + ")", true);
 				messageBuilder.addField("Message ID", getRelevantID() + "", false);
 				messageBuilder.addField("Channel", "<#" + getChannelID() + ">", true);
 				messageBuilder.addBlankField(false);
-				if (getTriggererID() == - 1)
+				/*if (getTriggererID() == - 1)
 					setTriggererID(originalMessageEntry != null ? originalMessageEntry.getTriggererID() : - 1);
 				if (getTriggererID() > - 1) {
 					System.out.println(getTriggererID());
@@ -405,7 +402,7 @@ public class ServerLogEntry {
 						return null;
 					}
 					messageBuilder.addField("Deleted By", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
-				} else messageBuilder.addField("Deleted By", "Unsure. Most likely the Author of the post.", true);
+				} else messageBuilder.addField("Deleted By", "Unsure. Most likely the Author of the post.", true);*/
 				appendHistory = true;
 				break;
 

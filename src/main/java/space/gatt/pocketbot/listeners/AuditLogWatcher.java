@@ -1,9 +1,6 @@
 package space.gatt.pocketbot.listeners;
 
-import net.dv8tion.jda.api.audit.ActionType;
-import net.dv8tion.jda.api.audit.AuditLogEntry;
-import net.dv8tion.jda.api.audit.AuditLogKey;
-import net.dv8tion.jda.api.audit.TargetType;
+import net.dv8tion.jda.api.audit.*;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
 import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
@@ -76,19 +73,22 @@ public class AuditLogWatcher extends ListenerAdapter {
 	@Override
 	public void onGuildMessageDelete(@Nonnull GuildMessageDeleteEvent event) {
 		if (getIgnoredIDs().contains(event.getMessageIdLong())) return;
+		OffsetDateTime now = OffsetDateTime.now();
 		GuildConfiguration configuration = GuildConfiguration.getGuildConfiguration(event.getGuild());
 		ServerLogEntry logEntry = new ServerLogEntry(AuditLogType.MESSAGE_DELETE, event.getGuild());
 		logEntry.setRelevantID(event.getMessageIdLong());
 		logEntry.setChannelID(event.getChannel().getIdLong());
 		ServerLogEntry originalMessageEntry = configuration.getLastEntryForRelevantID(event.getMessageIdLong(), AuditLogType.MESSAGE_SEND).orElse(null);
-		event.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queueAfter(2000, TimeUnit.NANOSECONDS, (s) -> {
-			if (originalMessageEntry != null) {
+		System.out.println("NOW: " + now.toEpochSecond());
+		event.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queue((s) -> {
+			/*if (originalMessageEntry != null) {
 				if (s.size() > 0) {
 					for (AuditLogEntry entry : s) {
-						System.out.println(entry.getTargetType().name());
+						System.out.println(entry.getIdLong() + " @ " +  entry.getTimeCreated().toEpochSecond() + " - by " + entry.getTargetIdLong() +" vs " + entry.getUser().getId());
 						if (ignoredIDs.contains(entry.getIdLong())) continue;
-						if (entry.getType() == ActionType.MESSAGE_DELETE && entry.getTargetType() == TargetType.MEMBER
-								&& (OffsetDateTime.now().getNano() - entry.getTimeCreated().getNano()) <= 2000
+
+						if (entry.getType() == ActionType.MESSAGE_DELETE
+								&& (now.toEpochSecond() - entry.getTimeCreated().toEpochSecond()) <= 1
 								&& originalMessageEntry.getTriggererID() == entry.getTargetIdLong()) {
 							ignoredIDs.add(entry.getIdLong());
 							logEntry.setTriggererID(entry.getUser().getIdLong());
@@ -101,8 +101,8 @@ public class AuditLogWatcher extends ListenerAdapter {
 					}
 				}
 			}
-			logEntry.setTriggererID(- 1);
-			logEntry.setContent("User deleted their own message");
+			logEntry.setContent("User deleted their own message");*/
+			logEntry.setTriggererID(-1);
 			configuration.parseLogEntry(logEntry);
 		});
 	}
@@ -116,7 +116,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setRelevantID(event.getChannel().getIdLong());
 		logEntry.setContent(event.getChannel().getName());
 		logEntry.setChannelID(event.getChannel().getIdLong());
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_DELETE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_DELETE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -141,7 +141,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setContent("**__New Name:__** " + event.getNewName() + "\n**__Old Name:__** " + event.getOldName());
 		logEntry.setChannelID(event.getChannel().getIdLong());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -166,7 +166,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setContent("**__New Topic:__** " + event.getNewTopic() + "\n**__Old Topic:__** " + event.getOldTopic());
 		logEntry.setChannelID(event.getChannel().getIdLong());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -191,7 +191,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setContent("**__New Position:__** " + event.getNewPosition() + "\n**__Old Position:__** " + event.getOldPosition());
 		logEntry.setChannelID(event.getChannel().getIdLong());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -216,7 +216,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setChannelID(event.getChannel().getIdLong());
 		logEntry.setContent("**Channel Name:** " + event.getChannel().getName());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_CREATE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_CREATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -240,7 +240,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setRelevantID(event.getChannel().getIdLong());
 		logEntry.setContent("**Channel Name:** " + event.getChannel().getName());
 		logEntry.setChannelID(event.getChannel().getIdLong());
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_DELETE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_DELETE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -265,7 +265,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setContent("**__New Name:__** " + event.getNewName() + "\n**__Old Name:__** " + event.getOldName());
 		logEntry.setChannelID(event.getChannel().getIdLong());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -290,7 +290,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setContent("**__New Position:__** " + event.getNewPosition() + "\n**__Old Position:__** " + event.getOldPosition());
 		logEntry.setChannelID(event.getChannel().getIdLong());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_UPDATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -315,7 +315,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setChannelID(event.getChannel().getIdLong());
 		logEntry.setContent("**Channel Name:** " + event.getChannel().getName());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_CREATE).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.CHANNEL_CREATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getChannel().getIdLong()) {
@@ -340,7 +340,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		ServerLogEntry logEntry = new ServerLogEntry(AuditLogType.BAN_USER, event.getGuild());
 		logEntry.setRelevantID(event.getUser().getIdLong());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.BAN).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.BAN).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getUser().getIdLong()) {
@@ -362,7 +362,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		ServerLogEntry logEntry = new ServerLogEntry(AuditLogType.UNBAN_USER, event.getGuild());
 		logEntry.setRelevantID(event.getUser().getIdLong());
 
-		event.getGuild().retrieveAuditLogs().type(ActionType.UNBAN).queueAfter(3, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.UNBAN).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getUser().getIdLong()) {
@@ -410,7 +410,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		List<String> roleNames = new ArrayList<>();
 		for (Role r : event.getRoles()) roleNames.add(r.getAsMention());
 		logEntry.setContent("**Given Roles** " + String.join(", ", roleNames));
-		event.getGuild().retrieveAuditLogs().type(ActionType.MEMBER_ROLE_UPDATE).queueAfter(1, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.MEMBER_ROLE_UPDATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getUser().getIdLong() && entry.getChangeByKey(AuditLogKey.MEMBER_ROLES_ADD) != null) {
@@ -435,7 +435,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		for (Role r : event.getRoles())
 			roleNames.add(r.getAsMention());
 		logEntry.setContent("**Taken Roles** " + String.join(", ", roleNames));
-		event.getGuild().retrieveAuditLogs().type(ActionType.MEMBER_ROLE_UPDATE).queueAfter(1, TimeUnit.SECONDS, (s) -> {
+		event.getGuild().retrieveAuditLogs().type(ActionType.MEMBER_ROLE_UPDATE).queue((s) -> {
 			if (s.size() > 0) {
 				for (AuditLogEntry entry : s) {
 					if (entry.getTargetIdLong() == event.getUser().getIdLong() && entry.getChangeByKey(AuditLogKey.MEMBER_ROLES_REMOVE) != null) {

@@ -66,37 +66,35 @@ public class ViewActionLogCommands extends Command {
 						if (newReason.length() == 0)
 							commandEvent.reply(MessageUtil.getErrorBuilder("No reason was given.").build());
 						else {
-							if (entry.getTriggererID() == commandEvent.getAuthor().getIdLong()) {
-								entry.setReason(newReason + "\n - " +
-										commandEvent.getAuthor().getAsMention() + "  (" + commandEvent.getAuthor().getName() + "#" + commandEvent.getAuthor().getDiscriminator() + ")");
-								GuildConfiguration configuration = GuildConfiguration.getGuildConfiguration(entry.getGuildID());
-								configuration.save();
-								EmbedBuilder msgB = entry.build();
-								if (msgB != null) {
-									Message msg = entry.getMessage();
-									if (msg != null) {
-										msg.editMessage(msgB.build()).queue();
-										commandEvent.getTextChannel().sendMessage(
-												MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason
-														+ "`\nClick [here](" + msg.getJumpUrl() + ") to go to the message").build())
-												.queue(newMsg -> {
-													AuditLogWatcher.getIgnoredIDs().add(newMsg.getIdLong());
-													newMsg.delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
-													commandEvent.getMessage().delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
-												});
-									} else {
-										commandEvent.getTextChannel().sendMessage(
-												MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason + "`").build())
-												.queue(newMsg -> {
-													AuditLogWatcher.getIgnoredIDs().add(newMsg.getIdLong());
-													newMsg.delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
-													commandEvent.getMessage().delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
-												});
-										;
-									}
+							entry.setReason(newReason + "\n - " +
+									commandEvent.getAuthor().getAsMention() + "  (" + commandEvent.getAuthor().getName() + "#" + commandEvent.getAuthor().getDiscriminator() + ")");
+							GuildConfiguration configuration = GuildConfiguration.getGuildConfiguration(entry.getGuildID());
+							configuration.save();
+							EmbedBuilder msgB = entry.build();
+							if (msgB != null) {
+								Message msg = entry.getMessage();
+								if (msg != null) {
+									msg.editMessage(msgB.build()).queue();
+									commandEvent.getTextChannel().sendMessage(
+											MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason
+													+ "`\nClick [here](" + msg.getJumpUrl() + ") to go to the message").build())
+											.queue(newMsg -> {
+												AuditLogWatcher.getIgnoredIDs().add(newMsg.getIdLong());
+												newMsg.delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
+												commandEvent.getMessage().delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
+											});
 								} else {
-									commandEvent.reply(MessageUtil.getErrorBuilder("Something went wrong while building the new message. The reason has been updated still.").build());
+									commandEvent.getTextChannel().sendMessage(
+											MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason + "`").build())
+											.queue(newMsg -> {
+												AuditLogWatcher.getIgnoredIDs().add(newMsg.getIdLong());
+												newMsg.delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
+												commandEvent.getMessage().delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
+											});
+									;
 								}
+							} else {
+								commandEvent.reply(MessageUtil.getErrorBuilder("Something went wrong while building the new message. The reason has been updated still.").build());
 							}
 						}
 					}
