@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import space.gatt.pocketbot.configs.GuildConfiguration;
+import space.gatt.pocketbot.listeners.AuditLogWatcher;
 import space.gatt.pocketbot.utils.MessageUtil;
 import space.gatt.pocketbot.utils.ServerLogEntry;
 
@@ -58,6 +59,7 @@ public class ViewActionLogCommands extends Command {
 					GuildConfiguration config = GuildConfiguration.getGuildConfiguration(commandEvent.getGuild());
 					Optional<ServerLogEntry> log = config.getEntryForId(actionId);
 					ServerLogEntry entry = log.orElse(null);
+					AuditLogWatcher.getIgnoredIDs().add(commandEvent.getMessage().getIdLong());
 					if (entry == null)
 						commandEvent.reply(MessageUtil.getErrorBuilder("Couldn't find an Action for the ID " + actionId).build());
 					else {
@@ -78,15 +80,17 @@ public class ViewActionLogCommands extends Command {
 												MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason
 														+ "`\nClick [here](" + msg.getJumpUrl() + ") to go to the message").build())
 												.queue(newMsg -> {
-													newMsg.delete().queueAfter(5, TimeUnit.SECONDS);
-													commandEvent.getMessage().delete().queueAfter(5, TimeUnit.SECONDS);
+													AuditLogWatcher.getIgnoredIDs().add(newMsg.getIdLong());
+													newMsg.delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
+													commandEvent.getMessage().delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
 												});
 									} else {
 										commandEvent.getTextChannel().sendMessage(
 												MessageUtil.getDefaultBuilder().setDescription("Success. Updated The reason for Action ID " + actionId + " to `" + newReason + "`").build())
 												.queue(newMsg -> {
-													newMsg.delete().queueAfter(5, TimeUnit.SECONDS);
-													commandEvent.getMessage().delete().queueAfter(5, TimeUnit.SECONDS);
+													AuditLogWatcher.getIgnoredIDs().add(newMsg.getIdLong());
+													newMsg.delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
+													commandEvent.getMessage().delete().reason("Command Cleanup").queueAfter(5, TimeUnit.SECONDS);
 												});
 										;
 									}
