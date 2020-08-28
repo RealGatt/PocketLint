@@ -1,5 +1,7 @@
-# PocketLint
+# PocketLint <img src="https://api.travis-ci.org/RealGatt/PocketLint.svg" alt="Travis Passing Image">
 A bot written for the Official BackPocket Discord
+
+[Travis.CI](https://travis-ci.org/github/RealGatt/PocketLint)
 
 ## Requirements
 - Java
