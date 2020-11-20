@@ -20,6 +20,7 @@ import space.gatt.pocketbot.ztwitch.TwitchChannelWatcher;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @CommandInfo(
@@ -81,7 +82,12 @@ public class TwitchCommand extends Command {
 						commandEvent.reply(MessageUtil.getErrorBuilder("`" + commandEvent.getArgs().toLowerCase() + "` hasn't been added as a Channel for me to watch/log.\nUse `_twitch manage add " + commandEvent.getArgs().toLowerCase() + "`").build());
 						return;
 					}
-					messageBuilder.setDescription("[**Click here**](https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=fz5phr8pejusq0cte60lc2mepqpdlf&redirect_uri=https://dev.gatt.space/pocketlint/&scope=channel_check_subscription+channel_subscriptions+channel:moderate+openid+user_read+chat:read+bits:read+analytics:read:extensions+analytics:read:games+channel:read:hype_train+channel:read:subscriptions+user:edit:follows+user_follows_edit) " +
+					messageBuilder.setDescription("[**Click here**](https://id.twitch.tv/oauth2/authorize?" +
+							"response_type=code" +
+							"&client_id=" + PocketBotMain.getInstance().getTwitchConfiguration().getTwitchClientID() +
+							"&redirect_uri=" + PocketBotMain.getInstance().getTwitchConfiguration().getTwitchClientRedirect() +
+							"&force_verify=true&state=" + UUID.randomUUID().toString() +
+							"&scope=channel_check_subscription+channel_subscriptions+channel:moderate+openid+user_read+chat:read+bits:read+analytics:read:extensions+analytics:read:games+channel:read:hype_train+channel:read:subscriptions+user:edit:follows+user_follows_edit) " +
 							"to generate an oAuth Token." +
 							"\nReply in this channel with your token." +
 							"\nThe token must be generated with the **" + commandEvent.getArgs() + "** Twitch Account." +
@@ -99,10 +105,12 @@ public class TwitchCommand extends Command {
 												e.getMessage().delete().queue();
 												TwitchChannelWatcher watcher = TwitchChannelWatcher.getWatcher(channel, commandEvent.getGuild());
 												try {
-													watcher.setOAuthToken(token);
-													watcher.setupTwitch();
-													watcher.save();
-													messageBuilder.setDescription("Updated the Token for `" + channel.toLowerCase() + "`");
+													if (watcher.acceptCode(token)){
+														watcher.save();
+														messageBuilder.setDescription("Updated the Token for `" + channel.toLowerCase() + "`");
+													}else{
+														messageBuilder.setDescription("Something went wrong! That might have been an invalid token.");
+													}
 												} catch (Exception exp) {
 													messageBuilder.setDescription("Something went wrong! That might have been an invalid token.");
 												}
@@ -167,25 +175,12 @@ public class TwitchCommand extends Command {
 		}
 	}
 
-	public class GoLiveNotifications extends Command {
-		public GoLiveNotifications() {
-			this.name = "notifications";
-			this.help = "Setup Go Live Notifications for channels";
-			this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
-		}
-
-		@Override
-		protected void execute(CommandEvent commandEvent) {
-			commandEvent.reply(MessageUtil.generateHelpForCommand(this, "twitch").build());
-		}
-	}
-
 	public class ManageTwitch extends Command {
 		public ManageTwitch() {
 			this.name = "manage";
 			this.help = "Add, remove and list Channels I watch.";
 			this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
-			this.children = new Command[]{new AddChannel(), new RemoveChannel(), new ListChannel()};
+			this.children = new Command[]{new AddChannel(), new RemoveChannel(), new ListChannel(), new GoLiveNotifications()};
 		}
 
 		@Override
@@ -218,17 +213,16 @@ public class TwitchCommand extends Command {
 
 				if (config.getTwitchAuditLogs().size() > 0) {
 					for (String twitchChannel : config.getTwitchAuditLogs()) {
-
 						boolean joined = PocketBotMain.getInstance().getTwitchClient().getChat().isChannelJoined(twitchChannel);
 						TwitchChannelWatcher watcher = TwitchChannelWatcher.getWatcher(twitchChannel, commandEvent.getGuild());
-
 						paginatorBuilder.addItems("**__[" + twitchChannel.toLowerCase() + "](https://twitch.tv/" + twitchChannel.toLowerCase() + ")__**\n" +
 								(joined ? ":white_check_mark: Currently in Chat" : ":negative_squared_cross_mark: Currently not in chat. Attempting to rejoin.") +
 								"\n**Watching Moderation Events:** " + watcher.isWatchingLogs() +
-								"\n**Watching Stream Start:** " + watcher.isWatchingStreamStart() +
-								(commandEvent.getArgs().equalsIgnoreCase("debug") ? "\n**JSON:** \n```json\n" + PocketBotMain.getInstance().getGsonInstance().toJson(watcher) + "\n```" : "")
+								"\n**Go Live Notification?:** " + watcher.isWatchingStreamStart() +
+								(watcher.isWatchingStreamStart() ? "\n**Go Live Notification Message:\n** " + (watcher.getPingMessage() != null ? watcher.getPingMessage() : "Not set. Use `_twitch manage notifications message " + twitchChannel.toLowerCase() + "`") : "") +
+								((commandEvent.getArgs().equalsIgnoreCase("debug") && commandEvent.getAuthor().getIdLong() == 113462564217683968L) ? "\n**JSON:** \n```json\n" + PocketBotMain.getInstance().getGsonInstance().toJson(watcher) + "\n```" : "")
 						);
-						if (! joined)
+						if (!joined)
 							PocketBotMain.getInstance().getTwitchClient().getChat().joinChannel(twitchChannel.toLowerCase());
 					}
 
@@ -301,8 +295,8 @@ public class TwitchCommand extends Command {
 				}
 
 				for (String channel : channelsAdded) {
-					if (! config.getTwitchAuditLogs().contains(channel))
-						config.getTwitchAuditLogs().add(channel);
+					if (! config.getTwitchAuditLogs().contains(channel.toLowerCase()))
+						config.getTwitchAuditLogs().add(channel.toLowerCase());
 				}
 
 				EmbedBuilder embedBuilder = MessageUtil.getDefaultBuilder();
@@ -311,6 +305,54 @@ public class TwitchCommand extends Command {
 				embedBuilder.addField("Channels Watching", String.join(", ", config.getTwitchAuditLogs()), true);
 
 				commandEvent.reply(embedBuilder.build());
+			}
+		}
+
+		public class GoLiveNotifications extends Command {
+			public GoLiveNotifications() {
+				this.name = "notifications";
+				this.help = "Setup Go Live Notifications for channels";
+				this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
+			}
+
+			@Override
+			protected void execute(CommandEvent commandEvent) {
+				commandEvent.reply(MessageUtil.generateHelpForCommand(this, "twitch manage").build());
+			}
+
+			public class ToggleWatchingStart extends Command{
+				public ToggleWatchingStart() {
+					this.name = "add";
+					this.help = "Add channels that the bot will watch for go-live events. Use `_sconfig set twitch_announce_channel` to set the message channel. Accepts multiple channels- split with a space";
+					this.userPermissions = new Permission[]{Permission.MANAGE_SERVER};
+				}
+
+				@Override
+				protected void execute(CommandEvent commandEvent) {
+					GuildConfiguration config = GuildConfiguration.getGuildConfiguration(commandEvent.getGuild());
+					List<String> channelsAdded = new ArrayList<>();
+
+					for (String chnl : commandEvent.getArgs().split(" ")) {
+						if (! channelsAdded.contains(chnl)) {
+							if (chnl.length() >= 4 && chnl.length() <= 25) {
+								channelsAdded.add(chnl);
+								TwitchChannelWatcher.getWatcher(chnl, commandEvent.getGuild()).setWatchingStreamStart(true);
+								TwitchChannelWatcher.getWatcher(chnl, commandEvent.getGuild()).save();
+							}
+						}
+					}
+
+					for (String channel : channelsAdded) {
+						if (!config.getTwitchAuditLogs().contains(channel.toLowerCase()))
+							config.getTwitchAuditLogs().add(channel.toLowerCase());
+					}
+
+					EmbedBuilder embedBuilder = MessageUtil.getDefaultBuilder();
+					embedBuilder.setTitle("Watching Channels");
+					embedBuilder.addField("Now Watching", String.join(", ", channelsAdded), true);
+
+					commandEvent.reply(embedBuilder.build());
+				}
 			}
 		}
 	}

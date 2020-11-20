@@ -1,9 +1,12 @@
 package space.gatt.pocketbot.utils;
 
+import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.Id;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
 import space.gatt.pocketbot.PocketBotMain;
 import space.gatt.pocketbot.configs.GuildConfiguration;
+import space.gatt.pocketbot.database.interfaces.MorphiaHelper;
 import space.gatt.pocketbot.utils.enums.AuditLogType;
 import space.gatt.pocketbot.utils.enums.ChannelOption;
 
@@ -12,7 +15,17 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+
+@MorphiaHelper(datastore = "pocketbot")
+@Entity(value = "actions", noClassnameStored = true)
 public class ServerLogEntry {
+
+	@Id
+	private String id;
+
+	public String getId() {
+		return id;
+	}
 
 	private AuditLogType type;
 	private String content, reason = null;
@@ -37,6 +50,8 @@ public class ServerLogEntry {
 		this.guildID = guild.getIdLong();
 		this.guild = guild;
 		actionID = GuildConfiguration.getGuildConfiguration(guild).getNextLogID();
+		this.id = guildID + "-" + actionID;
+		save();
 	}
 
 	public ServerLogEntry(AuditLogType type, Guild guild, long backdatedTime) {
@@ -45,6 +60,8 @@ public class ServerLogEntry {
 		this.guild = guild;
 		this.time = backdatedTime;
 		actionID = GuildConfiguration.getGuildConfiguration(guild).getNextLogID();
+		this.id = guildID + "-" + actionID;
+		save();
 	}
 
 	public Guild getGuild() {
@@ -63,6 +80,7 @@ public class ServerLogEntry {
 
 	public void setReason(String reason) {
 		this.reason = reason;
+		save();
 	}
 
 	public String getImageURL() {
@@ -184,6 +202,10 @@ public class ServerLogEntry {
 			messageBuilder.addField("Previous Entries", previousEntryBuilder.toString(), false);
 
 		return messageBuilder;
+	}
+
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	private EmbedBuilder buildBasicData(EmbedBuilder messageBuilder) {
@@ -484,7 +506,13 @@ public class ServerLogEntry {
 
 		if (getImageURL() != null) messageBuilder.setImage(getImageURL());
 
+		save();
 		return messageBuilder;
+	}
+
+
+	public void save() {
+		PocketBotMain.getInstance().getMongoConnection().storeObject(this);
 	}
 
 }

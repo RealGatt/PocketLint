@@ -17,7 +17,6 @@ public class MuteCommand extends Command {
 
 	public MuteCommand() {
 		this.name = "mute";
-		this.botPermissions = new Permission[]{Permission.MANAGE_PERMISSIONS, Permission.MANAGE_CHANNEL};
 		this.userPermissions = new Permission[]{Permission.MANAGE_ROLES, Permission.MANAGE_PERMISSIONS};
 		this.help = "Mute a user";
 	}

@@ -1,5 +1,6 @@
 package space.gatt.pocketbot;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.philippheuer.credentialmanager.CredentialManager;
 import com.github.philippheuer.credentialmanager.CredentialManagerBuilder;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
@@ -18,6 +19,7 @@ import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.Compression;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
+import okhttp3.*;
 import space.gatt.pocketbot.commands.*;
 import space.gatt.pocketbot.commands.memes.Excellent;
 import space.gatt.pocketbot.commands.moderation.MuteCommand;
@@ -33,12 +35,12 @@ import space.gatt.pocketbot.ztwitch.TwitchChannelWatcher;
 
 import javax.security.auth.login.LoginException;
 import java.io.File;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PocketBotMain {
 	final static String dir = System.getProperty("user.dir") + "/data";
@@ -57,6 +59,7 @@ public class PocketBotMain {
 	private CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
 	private EventWaiter waiter = new EventWaiter();
 	private String twitchBotID = null;
+	private TwitchIdentityProvider twitchIdentityProvider;
 
 	public PocketBotMain(String[] startupArgs) {
 		this.startupArgs = startupArgs;
@@ -100,6 +103,11 @@ public class PocketBotMain {
 		return botConfiguration;
 	}
 
+	public TwitchIdentityProvider getTwitchIdentityProvider() {
+		return twitchIdentityProvider;
+	}
+
+
 	public void start() {
 
 		System.out.println("Loading Bot with the following Arguments: " + String.join(", ", startupArgs));
@@ -116,6 +124,7 @@ public class PocketBotMain {
 				.addCommand(new ViewActionLogCommands())
 				.addCommand(new DebugCommand())
 				.addCommand(new TwitchCommand())
+				.addCommand(new DirectoryCommand())
 
 				.addCommand(new MuteCommand())
 				.addCommand(new UnmuteCommand())
@@ -144,9 +153,11 @@ public class PocketBotMain {
 
 			twitchCredentials = new OAuth2Credential("twitch", twitchConfiguration.getTwitchOAuthToken());
 
-			credentialManager.registerIdentityProvider(
-					new TwitchIdentityProvider(twitchConfiguration.getTwitchClientID(), twitchConfiguration.getTwitchClientSecret(),
-							twitchConfiguration.getTwitchClientRedirect()));
+			twitchIdentityProvider = new TwitchIdentityProvider(twitchConfiguration.getTwitchClientID(), twitchConfiguration.getTwitchClientSecret(), twitchConfiguration.getTwitchClientRedirect());
+
+			credentialManager.registerIdentityProvider(twitchIdentityProvider);
+			credentialManager.addCredential("twitch", twitchCredentials);
+
 			credentialManager.save();
 
 			twitchClient = TwitchClientBuilder.builder()

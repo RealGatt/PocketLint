@@ -3,16 +3,20 @@ package space.gatt.pocketbot.ztwitch;
 import com.github.philippheuer.events4j.simple.domain.EventSubscriber;
 import com.github.twitch4j.chat.events.channel.*;
 import com.github.twitch4j.events.ChannelGoLiveEvent;
+import com.github.twitch4j.helix.domain.Game;
 import com.github.twitch4j.pubsub.events.ChatModerationEvent;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import space.gatt.pocketbot.PocketBotMain;
 import space.gatt.pocketbot.configs.GuildConfiguration;
+import space.gatt.pocketbot.database.GameCache;
+import space.gatt.pocketbot.utils.MessageUtil;
 import space.gatt.pocketbot.utils.enums.ChannelOption;
 
-import java.util.List;
+import java.util.*;
 
 public class ChatListener {
 
@@ -177,17 +181,45 @@ public class ChatListener {
 		}
 	}
 
+	private HashMap<String, Long> lastNotifyTime = new HashMap<>();
+
 	@EventSubscriber
 	public void onStreamStart(ChannelGoLiveEvent e) {
-		List<TwitchChannelWatcher> watchers = TwitchChannelWatcher.getWatchersForChannel(e.getChannel().getName());
+		List<TwitchChannelWatcher> watchers = TwitchChannelWatcher.getWatchersForChannel(e.getChannel().getName().toLowerCase());
 		if (watchers.size() > 0) {
 			watchers.forEach(tcw -> {
 				Guild guild = PocketBotMain.getInstance().getJDAInstance().getGuildById(tcw.getGuildID());
 				GuildConfiguration config = GuildConfiguration.getGuildConfiguration(guild);
+				System.out.println(e.getStream().getUserName() + " has gone live");
+				if (tcw.isWatchingStreamStart())
+					PocketBotMain.getInstance().getTwitchClient().getChat().sendMessage(e.getStream().getUserName(), e.getStream().getUserName() + " has gone live - " + e.getStream().getTitle());
 				if (config.getChannel(ChannelOption.TWITCH_ANNOUNCE_CHANNEL) != null && tcw.isWatchingStreamStart()) {
+					Long lastNotifyTime = this.lastNotifyTime.getOrDefault(e.getChannel().getId(), 0L);
+					Long timeDifference = System.currentTimeMillis() - lastNotifyTime;
+					if (timeDifference > 180000 /* 3 minutes */){
+						this.lastNotifyTime.put(e.getChannel().getId(), System.currentTimeMillis());
+						EmbedBuilder announceBuilder = MessageUtil.getDefaultBuilder();
+						announceBuilder.setTitle(e.getStream().getUserName() + " has gone live");
 
+						GameCache game = GameCache.getGame(e.getStream().getId());
+						String gameStr = "Unknown";
+						if (game.getGameId().equalsIgnoreCase("unknown"))
+							gameStr = "Unknown ||[Game ID = " + e.getStream().getGameId() + "](https://twitchinsights.net/game/" + e.getStream().getGameId() + ")||";
+
+						announceBuilder.setDescription("[**" + e.getStream().getTitle() + "**](https://twitch.tv/" + e.getStream().getUserName() + ")");
+						announceBuilder.addField("Category", "**" + gameStr + "**", true);
+						announceBuilder.setImage("https://static-cdn.jtvnw.net/previews-ttv/live_user_" + e.getStream().getUserName().toLowerCase() + "-1280x720.jpg?r=" + UUID.randomUUID());
+						announceBuilder.setThumbnail(game.getGameBoxArt());
+						MessageBuilder finalBuilder = new MessageBuilder();
+						finalBuilder.setEmbed(announceBuilder.build());
+						if (tcw.getPingMessage() != null && !tcw.getPingMessage().isEmpty())
+							finalBuilder.setContent(tcw.getPingMessage());
+
+						config.getChannel(ChannelOption.TWITCH_ANNOUNCE_CHANNEL).sendMessage(finalBuilder.build()).queue();
+					}
 				}
 				if (tcw.isWatchingLogs()) {
+					tcw.attemptTokenRefresh();
 					PocketBotMain.getInstance().getTwitchClient().getChat().joinChannel(e.getChannel().getName());
 				}
 			});
@@ -196,6 +228,12 @@ public class ChatListener {
 
 	@EventSubscriber // delete message
 	public void onIRCMessage(IRCMessageEvent event) {
+
+		if (event.getMessage().orElse("nomsglmaooo").equalsIgnoreCase("@backpocketbot test") && event.getUserName().equalsIgnoreCase("gatt_au")){
+			PocketBotMain.getInstance().getTwitchClient().getChat().sendMessage(event.getChannelName().get(), "I'm alive, and connected to chat.");
+			return;
+		}
+
 		if (event.getCommandType().equalsIgnoreCase("join")) return;
 		if (event.getCommandType().equalsIgnoreCase("part")) return;
 		if (event.getCommandType().equalsIgnoreCase("hosttarget")) return;

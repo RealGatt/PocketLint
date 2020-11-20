@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 @MorphiaHelper(datastore = "pocketbot")
@@ -30,9 +31,10 @@ public class GuildConfiguration {
 	private List<String> twitchAuditLogs = new ArrayList<>();
 	private HashMap<String, Long> twitchToRolePing = new HashMap<>();
 	private long nextActionLogID = 0L;
-	private List<ServerLogEntry> logEntryList = new ArrayList<>();
+	private transient List<ServerLogEntry> logEntryList = null;
 
 	public GuildConfiguration() {
+		updateData();
 	}
 	// actionid/messageid
 
@@ -40,13 +42,35 @@ public class GuildConfiguration {
 		this.guildID = guildID;
 	}
 
+	public static HashMap<Long, GuildConfiguration> getConfigurationHashMap() {
+		return configurationHashMap;
+	}
+
+	public List<ServerLogEntry> getLogEntryList() {
+		if (logEntryList == null){
+			System.out.println("Pulling old Entries for Guild " + getGuildInstance().getName());
+			logEntryList = PocketBotMain.getInstance().getMongoConnection().getMultipleObjects("_id", Pattern.compile(guildID + "-*", Pattern.CASE_INSENSITIVE), Integer.MAX_VALUE, ServerLogEntry.class);
+			System.out.println("Pulled " + logEntryList.size() + " old Entries for Guild " + getGuildInstance().getName());
+		}
+		return logEntryList;
+	}
+
 	public static GuildConfiguration getGuildConfiguration(Long guildId) {
-		GuildConfiguration potentialConfig = PocketBotMain.getInstance().getMongoConnection().getSingleObject("_id", guildId, GuildConfiguration.class);
 		if (configurationHashMap.containsKey(guildId)) return configurationHashMap.get(guildId).updateData();
+
+		GuildConfiguration potentialConfig = PocketBotMain.getInstance().getMongoConnection().getSingleObject("_id", guildId, GuildConfiguration.class);
 		if (potentialConfig == null) potentialConfig = new GuildConfiguration(guildId);
 		configurationHashMap.put(guildId, potentialConfig);
 		potentialConfig.save();
 		return getGuildConfiguration(guildId).updateData();
+	}
+
+	public long getGuildID() {
+		return guildID;
+	}
+
+	public Guild getGuildInstance() {
+		return guildInstance;
 	}
 
 	public static GuildConfiguration getGuildConfiguration(Guild guild) {
@@ -86,48 +110,47 @@ public class GuildConfiguration {
 	}
 
 	public Optional<ServerLogEntry> getEntryForId(long actionID) {
-		return logEntryList.stream().filter(let -> let.getActionID() == actionID).findFirst();
+		return getLogEntryList().stream().filter(let -> let.getActionID() == actionID).findFirst();
 	}
 
 	public Optional<ServerLogEntry> getFirstEntryForRelevantID(long relevant) {
-		return logEntryList.stream().filter(let -> let.getRelevantID() == relevant).findFirst();
+		return getLogEntryList().stream().filter(let -> let.getRelevantID() == relevant).findFirst();
 	}
 
 	public Optional<ServerLogEntry> getLastEntryForRelevantID(long relevant) {
-		return logEntryList.stream().filter(let -> let.getRelevantID() == relevant).reduce((first, second) -> second);
+		return getLogEntryList().stream().filter(let -> let.getRelevantID() == relevant).reduce((first, second) -> second);
 	}
 
 	public Stream<ServerLogEntry> getAllEntriesForRelevantID(long relevant) {
-		return logEntryList.stream().filter(let -> let.getRelevantID() == relevant);
+		return getLogEntryList().stream().filter(let -> let.getRelevantID() == relevant);
 	}
 
 	public Optional<ServerLogEntry> getFirstEntryForRelevantID(long relevant, AuditLogType type) {
-		return logEntryList.stream().filter(let -> let.getRelevantID() == relevant && let.getType() == type).findFirst();
+		return getLogEntryList().stream().filter(let -> let.getRelevantID() == relevant && let.getType() == type).findFirst();
 	}
 
 	public Optional<ServerLogEntry> getLastEntryForRelevantID(long relevant, AuditLogType type) {
-		return logEntryList.stream().filter(let -> let.getRelevantID() == relevant && let.getType() == type).reduce((first, second) -> second);
+		return getLogEntryList().stream().filter(let -> let.getRelevantID() == relevant && let.getType() == type).reduce((first, second) -> second);
 	}
 
 	public Stream<ServerLogEntry> getAllEntriesForRelevantID(long relevant, AuditLogType type) {
-		return logEntryList.stream().filter(let -> let.getRelevantID() == relevant && let.getType() == type);
+		return getLogEntryList().stream().filter(let -> let.getRelevantID() == relevant && let.getType() == type);
 	}
 
 	public void parseLogEntry(ServerLogEntry entry) {
-		System.out.println("Logging Entry " + entry.getActionID() + " for Guild " + guildID + " (" + entry.getType() + ")");
+		//System.out.println("Logging Entry " + entry.getActionID() + " for Guild " + guildID + " (" + entry.getType() + ")");
 		if (auditLogOptions.getOrDefault(entry.getType(), entry.getType().getDefaultVal())) {
 			TextChannel auditChannel = getChannel(ChannelOption.AUDIT_LOG_CHANNEL);
 			System.out.println(auditChannel);
 			if (auditChannel == null) return;
-			System.out.println("Audit Channel set.");
+			//System.out.println("Audit Channel set.");
 
 			EmbedBuilder msgB = entry.build();
 			if (msgB != null)
 				auditChannel.sendMessage(msgB.build()).queue(s -> entry.setLogChannelMessageID(s.getIdLong()));
-		} else {
-			System.out.println("Logging this task is disabled");
 		}
-		logEntryList.add(entry);
+		getLogEntryList().add(entry);
+		entry.save();
 		save();
 	}
 

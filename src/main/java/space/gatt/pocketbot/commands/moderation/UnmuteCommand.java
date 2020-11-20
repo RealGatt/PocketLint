@@ -17,7 +17,6 @@ public class UnmuteCommand extends Command {
 
 	public UnmuteCommand() {
 		this.name = "unmute";
-		this.botPermissions = new Permission[]{Permission.MANAGE_PERMISSIONS, Permission.MANAGE_CHANNEL};
 		this.userPermissions = new Permission[]{Permission.MANAGE_ROLES, Permission.MANAGE_PERMISSIONS};
 		this.help = "Unmute a user";
 	}

@@ -81,6 +81,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		ServerLogEntry originalMessageEntry = configuration.getLastEntryForRelevantID(event.getMessageIdLong(), AuditLogType.MESSAGE_SEND).orElse(null);
 		System.out.println("NOW: " + now.toEpochSecond());
 		event.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queue((s) -> {
+			logEntry.setBotAction(originalMessageEntry.isBotAction());
 			/*if (originalMessageEntry != null) {
 				if (s.size() > 0) {
 					for (AuditLogEntry entry : s) {
