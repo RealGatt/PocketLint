@@ -12,8 +12,10 @@ import java.util.List;
 
 public class MessageUtil {
 
+	private static Color clr = Color.decode("#4C7BBD"), errorClr = Color.decode("#fc2403");
+
 	public static Color getColor() {
-		return Color.decode("#4C7BBD");
+		return clr;
 	}
 
 	public static EmbedBuilder getDefaultBuilder() {
@@ -28,7 +30,7 @@ public class MessageUtil {
 	public static EmbedBuilder getErrorBuilder(String reason) {
 		EmbedBuilder builder = getDefaultBuilder();
 		builder.setDescription(reason);
-		builder.setColor(Color.decode("#fc2403"));
+		builder.setColor(errorClr);
 		return builder;
 	}
 

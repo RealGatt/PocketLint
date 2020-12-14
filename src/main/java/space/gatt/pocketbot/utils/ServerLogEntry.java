@@ -27,6 +27,16 @@ public class ServerLogEntry {
 		return id;
 	}
 
+	private boolean auditLogSuccess = false;
+
+	public boolean isAuditLogSuccess() {
+		return auditLogSuccess;
+	}
+
+	public void setAuditLogSuccess(boolean auditLogSuccess) {
+		this.auditLogSuccess = auditLogSuccess;
+	}
+
 	private AuditLogType type;
 	private String content, reason = null;
 	private long relevantID, channelID, guildID, triggererID;
@@ -70,7 +80,7 @@ public class ServerLogEntry {
 	}
 
 	public String getReason() {
-		if (reason != null && reason.equalsIgnoreCase("xx no reason xx")) return "";
+		if (reason != null && reason.equalsIgnoreCase("xx no reason xx")) return "xx no reason xx";
 		if (reason == null)
 			if (getTriggererID() == -1) return "No reason given. Please use `_actionlog reason " + getActionID() + " The Reason` to update the reason.";
 			else return "No reason given. " + getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + getActionID() + " The Reason` to update the reason.";
@@ -326,6 +336,7 @@ public class ServerLogEntry {
 			case BAN_USER:
 				messageBuilder.setTitle("User Banned");
 				messageBuilder.addField("User Banned \uD83D\uDED1", "<@" + getRelevantID() + "> has been banned. (ID:" + getRelevantID() + ")", true);
+				messageBuilder.addField("Username", getContent(), true);
 				messageBuilder.addBlankField(false);
 				messageBuilder.addField("Banned by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				appendHistory = true;
@@ -333,6 +344,7 @@ public class ServerLogEntry {
 			case UNBAN_USER:
 				messageBuilder.setTitle("User Unbanned");
 				messageBuilder.addField("User Unbanned ✅", "<@" + getRelevantID() + "> has been unbanned. (ID:" + getRelevantID() + ")", true);
+				messageBuilder.addField("Username", getContent(), true);
 				messageBuilder.addBlankField(false);
 				messageBuilder.addField("Unbanned by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				appendHistory = true;
@@ -478,14 +490,14 @@ public class ServerLogEntry {
 				break;
 			case GIVE_ROLE:
 				messageBuilder.setTitle("Roles Given");
-				messageBuilder.addField("User", "<#" + getRelevantID() + ">", true);
+				messageBuilder.addField("User", "<@" + getRelevantID() + ">", true);
 				messageBuilder.addField("Roles taken", getContent(), true);
 				messageBuilder.addBlankField(false);
 				messageBuilder.addField("Given by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
 				break;
 			case REMOVE_ROLE:
-				messageBuilder.setTitle("Roles Remove");
-				messageBuilder.addField("User", "<#" + getRelevantID() + ">", true);
+				messageBuilder.setTitle("Roles Removed");
+				messageBuilder.addField("User", "<@" + getRelevantID() + ">", true);
 				messageBuilder.addField("Roles taken", getContent(), true);
 				messageBuilder.addBlankField(false);
 				messageBuilder.addField("Removed by", getTriggererAsUser().getAsMention() + "  (" + getTriggererAsUser().getName() + "#" + getTriggererAsUser().getDiscriminator() + ")", true);
@@ -499,12 +511,15 @@ public class ServerLogEntry {
 		if (initialEntry != null && logChannel != null && appendHistory)
 			messageBuilder = appendPreviousEntries(messageBuilder);
 
-		messageBuilder.addField("Reason", getReason(), true);
+		String reason = getReason();
+		if (!reason.equalsIgnoreCase("xx no reason xx")) messageBuilder.addField("Reason", reason, true);
 
 		messageBuilder.setTimestamp(new Date(time).toInstant());
 		messageBuilder.setFooter("PocketLint | Log Action #" + getActionID(), PocketBotMain.getInstance().getJDAInstance().getSelfUser().getAvatarUrl());
 
 		if (getImageURL() != null) messageBuilder.setImage(getImageURL());
+
+		messageBuilder.setColor(getType() != null ? getType().getDisplayColor() : MessageUtil.getColor());
 
 		save();
 		return messageBuilder;

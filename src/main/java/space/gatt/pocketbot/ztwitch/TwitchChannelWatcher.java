@@ -268,15 +268,19 @@ public class TwitchChannelWatcher {
 		this.authorizationToken = null;
 		save();
 	}
-
 	public boolean attemptTokenRefresh(){
+		return attemptTokenRefresh("Unknown Reason");
+	}
+
+	public boolean attemptTokenRefresh(String reason){
+
 		if (authorizationToken == null) {
 			sendInvalidTokenMessage();
 			return false;
 		}
 
 		if (tokenCredentials == null){
-			System.out.println("Refreshing token 3 " + channelName);
+			System.out.println("Refreshing Token for " + channelName + "    ( REASON: " + reason + ")");
 
 			OAuth2Credential refreshedCredentials = refreshToken().orElse(null);
 			if (refreshedCredentials == null){
@@ -299,16 +303,22 @@ public class TwitchChannelWatcher {
 	}
 
 	public void setupTwitch() {
-		if (!attemptTokenRefresh()) return;
+
+		if (twitchChannelID == null) {
+			twitchChannelID = PocketBotMain.getInstance().getTwitchClient().getKraken()
+					.getUsersByLogin(Collections.singletonList(channelName))
+					.execute().getUsers().get(0).getId();
+			System.out.println("Set Channel ID for " + channelName + " to " + twitchChannelID);
+			save();
+		}
+
+		if (isWatchingStreamStart())
+			PocketBotMain.getInstance().getTwitchClient().getClientHelper().enableStreamEventListener(twitchChannelID, channelName.toLowerCase());
+
+		if (!attemptTokenRefresh("Bot Booted")) return;
+		else PocketBotMain.getInstance().getScheduler().scheduleWithFixedDelay(()->attemptTokenRefresh("Daily Refresh"), 0, 1, TimeUnit.DAYS);
 
 		if (oauthToken != null) {
-			if (twitchChannelID == null) {
-				twitchChannelID = PocketBotMain.getInstance().getTwitchClient().getKraken()
-						.getUsersByLogin(Collections.singletonList(channelName))
-						.execute().getUsers().get(0).getId();
-				System.out.println("Set Channel ID for " + channelName + " to " + twitchChannelID);
-				save();
-			}
 
 			System.out.println("Setting up PubSub for (" + twitchChannelID + ") " + channelName + "-" + guildID);// + " using token " + oauthToken);
 
@@ -316,19 +326,37 @@ public class TwitchChannelWatcher {
 
 				HystrixCommand flw = PocketBotMain.getInstance().getTwitchClient().getHelix()
 						.createFollow(tokenCredentials.getAccessToken(),
-						twitchChannelID, PocketBotMain.getInstance().getTwitchBotID(), false);
+								twitchChannelID, PocketBotMain.getInstance().getTwitchBotID(), false);
 				flw.execute();
 
 				if (flw.isFailedExecution()) throw new Throwable("Invalid oauth token");
 
-				flw = PocketBotMain.getInstance().getTwitchClient().getHelix().deleteFollow(tokenCredentials.getAccessToken(), twitchChannelID,
+				flw = PocketBotMain.getInstance().getTwitchClient().getHelix()
+						.createFollow(PocketBotMain.getInstance().getTwitchCredentials().getAccessToken(),
+								PocketBotMain.getInstance().getTwitchBotID(), twitchChannelID,false);
+				flw.execute();
+
+				flw = PocketBotMain.getInstance().getTwitchClient().getHelix()
+						.deleteFollow(tokenCredentials.getAccessToken(), twitchChannelID,
 						PocketBotMain.getInstance().getTwitchBotID());
 				flw.execute();
 
-
-				PocketBotMain.getInstance().getTwitchClient().getClientHelper().enableStreamEventListener(twitchChannelID, channelName.toLowerCase());
 				moderationSubscription = PocketBotMain.getInstance().getTwitchClient().getPubSub()
-						.listenForModerationEvents(tokenCredentials, twitchChannelID);
+							.listenForModerationEvents(tokenCredentials, twitchChannelID);
+
+				PocketBotMain.getInstance().getScheduler().scheduleWithFixedDelay(()->{
+
+					System.out.println("Refreshing moderation subscription for " + channelName);
+
+					PocketBotMain.getInstance().getTwitchClient().getChat().joinChannel(channelName);
+
+					PocketBotMain.getInstance().getTwitchClient().getPubSub().unsubscribeFromTopic(moderationSubscription); // refresh
+					moderationSubscription = PocketBotMain.getInstance().getTwitchClient().getPubSub()
+							.listenForModerationEvents(tokenCredentials, twitchChannelID);
+
+					System.out.println("Refreshed moderation subscription for " + channelName);
+				}, 0, 1, TimeUnit.DAYS);
+
 			} catch (Throwable e) {
 				sendInvalidTokenMessage();
 			}

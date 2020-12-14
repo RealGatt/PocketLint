@@ -91,7 +91,7 @@ public class TwitchCommand extends Command {
 							"to generate an oAuth Token." +
 							"\nReply in this channel with your token." +
 							"\nThe token must be generated with the **" + commandEvent.getArgs() + "** Twitch Account." +
-							"\nThe bot will attempt to make **" + commandEvent.getArgs() + "** follow `backpocketbot` on Twitch to validate the token, then if successful, will immediately unfollow.");
+							"\nThe bot will attempt to make **" + commandEvent.getArgs() + "** follow `Pockety` on Twitch to validate the token, then if successful, will immediately unfollow.");
 					chnl.sendMessage(new MessageBuilder()
 							.setEmbed(messageBuilder.build())
 							.setContent(commandEvent.getAuthor().getAsMention())

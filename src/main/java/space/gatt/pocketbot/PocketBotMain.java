@@ -1,6 +1,5 @@
 package space.gatt.pocketbot;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.philippheuer.credentialmanager.CredentialManager;
 import com.github.philippheuer.credentialmanager.CredentialManagerBuilder;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
@@ -18,18 +17,19 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.Compression;
-import net.dv8tion.jda.api.utils.cache.CacheFlag;
-import okhttp3.*;
 import space.gatt.pocketbot.commands.*;
 import space.gatt.pocketbot.commands.memes.Excellent;
 import space.gatt.pocketbot.commands.moderation.MuteCommand;
 import space.gatt.pocketbot.commands.moderation.UnmuteCommand;
+import space.gatt.pocketbot.commands.owner.DebugCommand;
+import space.gatt.pocketbot.commands.owner.EvalCommand;
 import space.gatt.pocketbot.configs.BotConfiguration;
 import space.gatt.pocketbot.configs.Configuration;
 import space.gatt.pocketbot.configs.MongoConfiguration;
 import space.gatt.pocketbot.configs.TwitchConfiguration;
 import space.gatt.pocketbot.database.MongoConnection;
 import space.gatt.pocketbot.listeners.AuditLogWatcher;
+import space.gatt.pocketbot.ztwitch.BPMandM;
 import space.gatt.pocketbot.ztwitch.ChatListener;
 import space.gatt.pocketbot.ztwitch.TwitchChannelWatcher;
 
@@ -39,8 +39,6 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PocketBotMain {
 	final static String dir = System.getProperty("user.dir") + "/data";
@@ -60,6 +58,7 @@ public class PocketBotMain {
 	private EventWaiter waiter = new EventWaiter();
 	private String twitchBotID = null;
 	private TwitchIdentityProvider twitchIdentityProvider;
+	private ChatListener chatListener;
 
 	public PocketBotMain(String[] startupArgs) {
 		this.startupArgs = startupArgs;
@@ -122,7 +121,6 @@ public class PocketBotMain {
 				.addCommand(new EmojiLockCommands())
 				.addCommand(new ServerConfigCommands())
 				.addCommand(new ViewActionLogCommands())
-				.addCommand(new DebugCommand())
 				.addCommand(new TwitchCommand())
 				.addCommand(new DirectoryCommand())
 
@@ -131,21 +129,26 @@ public class PocketBotMain {
 
 				.addCommands(new Excellent())
 
-				.setActivity(Activity.of(Activity.ActivityType.STREAMING, "BackPocket", "https://www.twitch.tv/back_pocket"))
+
+				.addCommand(new DebugCommand())
+				.addCommand(new EvalCommand())
+
+				.setActivity(Activity.of(Activity.ActivityType.STREAMING, "Back_Pocket", "https://www.twitch.tv/back_pocket"))
 				.useHelpBuilder(true).build();
 
 		try {
 
 			Set<GatewayIntent> intents = new HashSet<>();
 			intents.addAll(GatewayIntent.getIntents(GatewayIntent.DEFAULT));
-			intents.add(GatewayIntent.GUILD_MEMBERS);
+			intents.addAll(Arrays.asList(GatewayIntent.DIRECT_MESSAGES, GatewayIntent.GUILD_BANS, GatewayIntent.GUILD_EMOJIS,
+					GatewayIntent.GUILD_INVITES, GatewayIntent.GUILD_MESSAGE_REACTIONS,
+					GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MEMBERS));
 
 			jdaInstance = JDABuilder.create(botConfiguration.getBotToken(), intents)
 					.setAutoReconnect(true)
 					.setCompression(Compression.ZLIB)
-					.setActivity(Activity.of(Activity.ActivityType.WATCHING, "BackPocket", "https://www.twitch.tv/back_pocket"))
+					.setActivity(Activity.of(Activity.ActivityType.WATCHING, "Back_Pocket", "https://www.twitch.tv/back_pocket"))
 					.addEventListeners(commandClient, new AuditLogWatcher(), waiter)
-					.disableCache(CacheFlag.ACTIVITY, CacheFlag.CLIENT_STATUS)
 					.build();
 
 			mongoConnection = new MongoConnection(databaseConfiguration.getMongoIP(), databaseConfiguration.getMongoPort(), databaseConfiguration.getMongoUsername(), databaseConfiguration.getMongoPassword());
@@ -176,10 +179,13 @@ public class PocketBotMain {
 					.build();
 
 			twitchBotID = PocketBotMain.getInstance().getTwitchClient().getKraken()
-					.getUsersByLogin(Collections.singletonList("backpocketbot"))
+					.getUsersByLogin(Collections.singletonList("Pockety"))
 					.execute().getUsers().get(0).getId();
 
-			twitchClient.getEventManager().getEventHandler(SimpleEventHandler.class).registerListener(new ChatListener());
+			chatListener = new ChatListener();
+
+			twitchClient.getEventManager().getEventHandler(SimpleEventHandler.class).registerListener(chatListener);
+			//twitchClient.getEventManager().getEventHandler(SimpleEventHandler.class).registerListener(new BPMandM());
 
 			getMongoConnection().getMultipleObjects(10000, TwitchChannelWatcher.class);
 			TwitchChannelWatcher.loadAll();
@@ -188,6 +194,10 @@ public class PocketBotMain {
 			e.printStackTrace();
 			System.exit(9);
 		}
+	}
+
+	public ChatListener getChatListener() {
+		return chatListener;
 	}
 
 	public TwitchConfiguration getTwitchConfiguration() {

@@ -53,6 +53,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setChannelID(event.getMessage().getTextChannel().getIdLong());
 		logEntry.setBotAction(event.getAuthor().isBot());
 		logEntry.setReason("xx no reason xx");
+		logEntry.setAuditLogSuccess(true);
 		configuration.parseLogEntry(logEntry);
 	}
 
@@ -67,6 +68,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setChannelID(event.getMessage().getTextChannel().getIdLong());
 		logEntry.setBotAction(event.getAuthor().isBot());
 		logEntry.setReason("xx no reason xx");
+		logEntry.setAuditLogSuccess(true);
 		configuration.parseLogEntry(logEntry);
 	}
 
@@ -79,7 +81,6 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setRelevantID(event.getMessageIdLong());
 		logEntry.setChannelID(event.getChannel().getIdLong());
 		ServerLogEntry originalMessageEntry = configuration.getLastEntryForRelevantID(event.getMessageIdLong(), AuditLogType.MESSAGE_SEND).orElse(null);
-		System.out.println("NOW: " + now.toEpochSecond());
 		event.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queue((s) -> {
 			logEntry.setBotAction(originalMessageEntry.isBotAction());
 			/*if (originalMessageEntry != null) {
@@ -104,6 +105,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 			}
 			logEntry.setContent("User deleted their own message");*/
 			logEntry.setTriggererID(-1);
+			logEntry.setAuditLogSuccess(true);
 			configuration.parseLogEntry(logEntry);
 		});
 	}
@@ -125,11 +127,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -150,11 +155,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -175,11 +183,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -200,11 +211,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -225,11 +239,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -249,11 +266,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -274,11 +294,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -299,11 +322,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -324,11 +350,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(logEntry.getContent() + "\n" + (entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason."));
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -340,6 +369,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		GuildConfiguration configuration = GuildConfiguration.getGuildConfiguration(event.getGuild());
 		ServerLogEntry logEntry = new ServerLogEntry(AuditLogType.BAN_USER, event.getGuild());
 		logEntry.setRelevantID(event.getUser().getIdLong());
+		logEntry.setContent(event.getUser().getName() + "#" + event.getUser().getDiscriminator());
 
 		event.getGuild().retrieveAuditLogs().type(ActionType.BAN).queue((s) -> {
 			if (s.size() > 0) {
@@ -349,11 +379,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason.");
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -362,6 +395,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		GuildConfiguration configuration = GuildConfiguration.getGuildConfiguration(event.getGuild());
 		ServerLogEntry logEntry = new ServerLogEntry(AuditLogType.UNBAN_USER, event.getGuild());
 		logEntry.setRelevantID(event.getUser().getIdLong());
+		logEntry.setContent(event.getUser().getName() + "#" + event.getUser().getDiscriminator());
 
 		event.getGuild().retrieveAuditLogs().type(ActionType.UNBAN).queue((s) -> {
 			if (s.size() > 0) {
@@ -371,11 +405,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason.");
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -400,6 +437,7 @@ public class AuditLogWatcher extends ListenerAdapter {
 		logEntry.setContent(event.getUser().getName() + "#" + event.getUser().getDiscriminator());
 		logEntry.setImageURL(event.getUser().getAvatarUrl());
 		logEntry.setReason("xx no reason xx");
+		logEntry.setAuditLogSuccess(true);
 		configuration.parseLogEntry(logEntry);
 	}
 
@@ -419,11 +457,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason.");
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 
@@ -444,11 +485,14 @@ public class AuditLogWatcher extends ListenerAdapter {
 						logEntry.setReason(entry.getReason() != null ? entry.getReason() : null);
 						//logEntry.setContent(entry.getReason() != null ? entry.getReason() : "No reason given. " + logEntry.getTriggererAsUser().getAsMention() + ", please use `_actionlog reason " + logEntry.getActionID() + " The Reason` to update the reason.");
 						logEntry.setBotAction(entry.getUser().isBot());
+						logEntry.setAuditLogSuccess(true);
 						configuration.parseLogEntry(logEntry);
 						return;
 					}
 				}
 			}
+			logEntry.setAuditLogSuccess(false);
+			configuration.parseLogEntry(logEntry);
 		});
 	}
 

@@ -3,7 +3,6 @@ package space.gatt.pocketbot.ztwitch;
 import com.github.philippheuer.events4j.simple.domain.EventSubscriber;
 import com.github.twitch4j.chat.events.channel.*;
 import com.github.twitch4j.events.ChannelGoLiveEvent;
-import com.github.twitch4j.helix.domain.Game;
 import com.github.twitch4j.pubsub.events.ChatModerationEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -72,22 +71,24 @@ public class ChatListener {
 		if (watchers.size() == 0) return null;
 		String channel = watchers.get(0).getChannelName();
 		String message;
-		if (target != null)
-			message = "[ **#" + channel.toLowerCase() + "** ]  __" + target + "__ » " + context + "" + (triggerer != null ? " by **" + triggerer + "**" : "");
-		else
-			message = "[ **#" + channel.toLowerCase() + "** ] » " + context + (triggerer != null ? " by **" + triggerer + "**" : "");
-		if (watchers.size() > 0) {
-			watchers.forEach(tcw -> {
-				Guild guild = PocketBotMain.getInstance().getJDAInstance().getGuildById(tcw.getGuildID());
-				if (guild == null) return;
+		message = (target != null) ?
+				"[ **#" + channel.toLowerCase() + "** ]  __`" + target + "`__ » " + context + "" + (triggerer != null ? " by **`" + triggerer + "`**" : "") :
+				"[ **#" + channel.toLowerCase() + "** ] » " + context + (triggerer != null ? " by **`" + triggerer + "`**" : "");
+
+		for (TwitchChannelWatcher tcw : watchers){
+			Guild guild = PocketBotMain.getInstance().getJDAInstance().getGuildById(tcw.getGuildID());
+			if (guild != null) {
 				GuildConfiguration config = GuildConfiguration.getGuildConfiguration(guild);
 				if (tcw.isWatchingLogs()) {
 					TextChannel logChnl = config.getChannel(ChannelOption.TWITCH_LOG_CHANNEL);
 					if (logChnl != null)
 						logChnl.sendMessage(new MessageBuilder().setContent(message).denyMentions(Message.MentionType.values()).build()).queue();
 				}
-			});
+			}else{
+				System.out.println("Attempted to log to " + tcw.getGuildID() + " but returned value was Null");
+			}
 		}
+
 		return message;
 	}
 
@@ -186,13 +187,23 @@ public class ChatListener {
 	@EventSubscriber
 	public void onStreamStart(ChannelGoLiveEvent e) {
 		List<TwitchChannelWatcher> watchers = TwitchChannelWatcher.getWatchersForChannel(e.getChannel().getName().toLowerCase());
+		GameCache game = GameCache.getGame(e.getStream().getGameId());
+
+		PocketBotMain.getInstance().getTwitchClient().getChat().sendMessage(e.getStream().getUserName(), e.getStream().getUserName() + " has gone live - " + e.getStream().getTitle());
+
 		if (watchers.size() > 0) {
 			watchers.forEach(tcw -> {
 				Guild guild = PocketBotMain.getInstance().getJDAInstance().getGuildById(tcw.getGuildID());
 				GuildConfiguration config = GuildConfiguration.getGuildConfiguration(guild);
 				System.out.println(e.getStream().getUserName() + " has gone live");
-				if (tcw.isWatchingStreamStart())
-					PocketBotMain.getInstance().getTwitchClient().getChat().sendMessage(e.getStream().getUserName(), e.getStream().getUserName() + " has gone live - " + e.getStream().getTitle());
+
+				if (tcw.isWatchingLogs()) {
+					try {
+						tcw.attemptTokenRefresh("Stream Started Refresh");
+						PocketBotMain.getInstance().getTwitchClient().getChat().joinChannel(e.getChannel().getName());
+					}catch (Exception ex){
+					}
+				}
 				if (config.getChannel(ChannelOption.TWITCH_ANNOUNCE_CHANNEL) != null && tcw.isWatchingStreamStart()) {
 					Long lastNotifyTime = this.lastNotifyTime.getOrDefault(e.getChannel().getId(), 0L);
 					Long timeDifference = System.currentTimeMillis() - lastNotifyTime;
@@ -201,11 +212,11 @@ public class ChatListener {
 						EmbedBuilder announceBuilder = MessageUtil.getDefaultBuilder();
 						announceBuilder.setTitle(e.getStream().getUserName() + " has gone live");
 
-						GameCache game = GameCache.getGame(e.getStream().getId());
-						String gameStr = "Unknown";
+						String gameStr = game.getGameName();
 						if (game.getGameId().equalsIgnoreCase("unknown"))
 							gameStr = "Unknown ||[Game ID = " + e.getStream().getGameId() + "](https://twitchinsights.net/game/" + e.getStream().getGameId() + ")||";
-
+						else
+							gameStr = "[" + gameStr + "](https://twitchinsights.net/game/" + e.getStream().getGameId() + ")";
 						announceBuilder.setDescription("[**" + e.getStream().getTitle() + "**](https://twitch.tv/" + e.getStream().getUserName() + ")");
 						announceBuilder.addField("Category", "**" + gameStr + "**", true);
 						announceBuilder.setImage("https://static-cdn.jtvnw.net/previews-ttv/live_user_" + e.getStream().getUserName().toLowerCase() + "-1280x720.jpg?r=" + UUID.randomUUID());
@@ -218,10 +229,6 @@ public class ChatListener {
 						config.getChannel(ChannelOption.TWITCH_ANNOUNCE_CHANNEL).sendMessage(finalBuilder.build()).queue();
 					}
 				}
-				if (tcw.isWatchingLogs()) {
-					tcw.attemptTokenRefresh();
-					PocketBotMain.getInstance().getTwitchClient().getChat().joinChannel(e.getChannel().getName());
-				}
 			});
 		}
 	}
@@ -229,7 +236,7 @@ public class ChatListener {
 	@EventSubscriber // delete message
 	public void onIRCMessage(IRCMessageEvent event) {
 
-		if (event.getMessage().orElse("nomsglmaooo").equalsIgnoreCase("@backpocketbot test") && event.getUserName().equalsIgnoreCase("gatt_au")){
+		if (event.getMessage().orElse("nomsglmaooo").equalsIgnoreCase("@pockety test") && event.getUserName().equalsIgnoreCase("gatt_au")){
 			PocketBotMain.getInstance().getTwitchClient().getChat().sendMessage(event.getChannelName().get(), "I'm alive, and connected to chat.");
 			return;
 		}
@@ -258,21 +265,21 @@ public class ChatListener {
 
 	@EventSubscriber
 	public void onBan(UserBanEvent event) {
-		System.out.println(parseMessage(event.getChannel().getName(), event.getUser().getName(), null, "banned" + (! event.getReason().trim().isEmpty() ? " for " + event.getReason() : "") + " :hammer:"));
+		System.out.println("CLASSIC : " + parseMessage(event.getChannel().getName(), event.getUser().getName(), null, "banned" + (! event.getReason().trim().isEmpty() ? " for " + event.getReason() : "") + " :hammer:"));
 	}
 
 	@EventSubscriber
 	public void onTimeout(UserTimeoutEvent event) {
-		System.out.println(parseMessage(event.getChannel().getName(), event.getUser().getName(), null, "timed out for " + event.getDuration() + " seconds" + (! event.getReason().trim().isEmpty() ? " for " + event.getReason() : "") + " :mute: "));
+		System.out.println("CLASSIC : " + parseMessage(event.getChannel().getName(), event.getUser().getName(), null, "timed out for " + event.getDuration() + " seconds" + (! event.getReason().trim().isEmpty() ? " for " + event.getReason() : "") + " :mute: "));
 	}
 
 	@EventSubscriber
 	public void onMod(ChannelModEvent event) {
-		System.out.println(parseMessage(event.getChannel().getName(), event.getUser().getName(), null, event.isMod() ? event.getUser().getName() + " has been added as a Moderator" : event.getUser().getName() + " has been removed as a Moderator"));
+		System.out.println("CLASSIC : " + parseMessage(event.getChannel().getName(), event.getUser().getName(), null, event.isMod() ? event.getUser().getName() + " has been added as a Moderator" : event.getUser().getName() + " has been removed as a Moderator"));
 	}
 
 	@EventSubscriber
 	public void onClearChat(ClearChatEvent event) {
-		System.out.println(parseMessage(event.getChannel().getName(), null, null, "Chat has been cleared :broom:", true));
+		System.out.println("CLASSIC : " + parseMessage(event.getChannel().getName(), null, null, "Chat has been cleared :broom:", true));
 	}
 }

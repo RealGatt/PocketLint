@@ -128,9 +128,9 @@ public class MongoConnection {
 	public synchronized Datastore getDatastore(String datastore) {
 		datastore = datastore.toLowerCase();
 
-		if (datastoreStorage.containsKey(datastore)) {
+		if (datastoreStorage.containsKey(datastore))
 			return datastoreStorage.get(datastore);
-		}
+
 
 		Datastore store = morphia.createDatastore(client, datastore);
 		datastoreStorage.put(datastore, store);
